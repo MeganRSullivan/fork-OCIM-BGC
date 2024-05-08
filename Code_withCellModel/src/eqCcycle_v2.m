@@ -108,7 +108,8 @@ function [par, C, Cx, Cxx] = eqCcycle_v2(x, par)
         par.Cfailure = on;
         npx  = par.npx   ;
         ncx  = par.ncx   ;
-        nx   = npx + ncx ;
+        nbx  = par.nbx   ; % number of cell model parameters
+        nx   = npx + ncx + nbx;
         C    = GC ;
         Cx   = sparse(7*par.nwet, nx) ;
         Cxx  = sparse(7*par.nwet, nchoosek(nx,2)+nx) ;
@@ -331,7 +332,10 @@ function [F,FD,par,Cx,Cxx] = C_eqn(X, par)
 		end
         [~,Gx] = uptake_C(par);
         par.Gx = Gx;
-        npx    = par.npx;
+        npx    = par.npx ;
+        ncx    = par.ncx ;
+        nbx    = par.nbx ; 
+
         % ----------------- P model  parameters ------------------
         % DEV NOTE: If you want to use model DIP as the input to the 
         % cell model, then when the cell model is on, C2P is a 
@@ -2136,7 +2140,28 @@ function [F,FD,par,Cx,Cxx] = C_eqn(X, par)
             
             RHS(:,kk) = tmp;
         end
+
+        % ------------------------------------------------------
+        % P and  Cell model parameters
+        if par.Cellmodel
+            for jj = 1:npx
+                for jk = npx+ncx+1:npx+ncx+nbx
+                    kk = kk + 1;
+                    % Note: this assumes cell model is not a function of P model parameters
+                    tmp = [-d0(((1-sigC-gamma)*RR)*Gx(:,jj))*C2Px(:,jk); ...
+                        d0((1-sigC-gamma)*Gx(:,jj))*C2Px(:,jk); ...
+                        d0(sigC*Gx(:,jj))*C2Px(:,jk); ...
+                        d0((1-sigC-gamma)*RR*Gx(:,jj))*C2Px(:,jk); ...
+                        d0(-2*(1-sigC-gamma)*RR*Gx(:,jj))*C2Px(:,jk); ...
+                        -d0(Gx(:,jj))*C2Px(:,jk); ...
+                        Z];
+
+                    RHS(:,kk) = tmp;
+                end
+            end
+        end
         
+        % ------------------------------------------------------
         % C model only parameters
         % sigC sigC
         if (par.opt_sigC == on)
