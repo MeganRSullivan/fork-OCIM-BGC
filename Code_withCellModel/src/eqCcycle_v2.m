@@ -732,6 +732,9 @@ function [F,FD,par,Cx,Cxx] = C_eqn(X, par)
     if (par.optim == off)
         Cxx = [];
     elseif (par.optim & nargout > 3);
+        if par.Cellmodel ==on %(using eqC2Puptake)
+			C2Pxx  = par.C2Pxx;
+		end
         if par.C2P_Tzmodel ==on
 			p2c       = ccT*Tz + ddT;
         	C2P_dd_dd = 2./p2c.^3;
@@ -5222,6 +5225,24 @@ function [F,FD,par,Cx,Cxx] = C_eqn(X, par)
 
             % ------------------------------------------------------
             % Cell model parameters
+            ck = 0;
+            for jj = 1:nbx %(npx+ncx+1):(npx+ncx+nbx)
+                for jk = jj:nbx %jj:(npx+ncx+nbx)
+                    kk = kk + 1;
+                    ck = ck + 1;
+                    C2P_dxxtmp = C2Pxx(:,ck);
+                    tmp = [-((1-sigC-gamma)*RR)*(G*(C2P_dxxtmp)); ...
+                            (1-sigC-gamma)*G*(C2P_dxxtmp); ...
+                            sigC*G*(C2P_dxxtmp); ...
+                            (1-sigC-gamma)*RR*(G*(C2P_dxxtmp)); ...
+                            -2*(1-sigC-gamma)*RR*(G*(C2P_dxxtmp)) ; ...
+                            -G*(C2P_dxxtmp); ...
+                            Z];
+
+                    RHS(:,kk) = tmp;
+                end
+            end
+
 
         end
         % ------------------------------------------------------
