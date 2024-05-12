@@ -396,6 +396,7 @@ function [F, FD, Ox, Oxx, O2tstep] = O_eqn(O2, par)
         
         %
         % P & Cell model parameters
+        if par.Cellmodel ==on 
          for ju = 1 : npx
             for jo = (npx+ncx+1) : (npx+ncx+nbx)
                kk = kk + 1;
@@ -410,6 +411,7 @@ function [F, FD, Ox, Oxx, O2tstep] = O_eqn(O2, par)
                RHS(:,kk) = -tmp    ;
             end
          end
+        end
 
         % C model only parameters
         for ju = (npx+1) : (npx+ncx)
@@ -962,9 +964,25 @@ function [F, FD, Ox, Oxx, O2tstep] = O_eqn(O2, par)
 
                end
                RHS(:,kk) = -tmp    ;
-            end
-         end
-        end
+            end   % jo
+         end   % ju
+
+        % Cell model only parameters
+         for ju = (npx+ncx+1) : (npx+ncx+nbx)
+            for jo = ju : (npx+ncx+nbx)
+               kk = kk + 1 ;
+               tmp = d0(eta*kC*DOCxx(:,kk) + kappa_r*DOCrxx(:,kk) + ...
+                             kappa_l*DOClxx(:,kk) + kappa_p*POCxx(:,kk))*R.*O2C + ...                             
+                          d0(eta*kC*DOCx(:,jo) + kappa_r*DOCrx(:,jo) + kappa_l*DOClx(:,jo) + ...
+                             kappa_p*POCx(:,jo))*dRdO.*Ox(:,ju).*O2C + ...
+                          d0(eta*kC*DOCx(:,ju) + kappa_r*DOCrx(:,ju) + kappa_l*DOClx(:,ju) + ...
+                             kappa_p*POCx(:,ju))*dRdO.*Ox(:,jo).*O2C + ...                    
+                          Ox(:,ju).*d2LdO2.*Ox(:,jo) ; 
+
+               RHS(:,kk) = -tmp    ;
+            end   % jo
+         end   % ju 
+        end    % if par.Cellmodel==on
 
         % P and O model only parameters
         for ju = 1 : npx
