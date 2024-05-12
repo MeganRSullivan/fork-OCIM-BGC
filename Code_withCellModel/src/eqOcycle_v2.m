@@ -156,12 +156,9 @@ function [F, FD, Ox, Oxx, O2tstep] = O_eqn(O2, par)
     elseif (par.optim & nargout > 2)
         npx  = par.npx ;
         ncx  = par.ncx ;
+        nbx  = par.nbx ;   % cell model parameter count
         nox  = par.nox ;
-        nx   = npx + ncx + nox  ;
-        if (par.Cellmodel == on)
-            nbx = par.nbx; 
-            nx = npx + ncx + nbx + nox  ;
-        end
+        nx   = npx + ncx + nbx + nox  ;
         Ox   = sparse(nwet, nx) ;
         Gx   = par.Gx ;
         DICx  = par.Cx(0*nwet+1:1*nwet,:) ;
@@ -986,7 +983,7 @@ function [F, FD, Ox, Oxx, O2tstep] = O_eqn(O2, par)
 
         % P and O model only parameters
         for ju = 1 : npx
-            for jo = (npx+ncx+1) : (npx+ncx+nox)
+            for jo = (npx+ncx+nbx+1) : (npx+ncx+nbx+nox)
                 kk = kk + 1 ;
                 if (par.opt_O2C_T == on & jo == pindx.O2C_T)
                     tmp = d0(eta*kC*DOC + kappa_r*DOCr + kappa_l*DOCl + ...
@@ -1013,7 +1010,7 @@ function [F, FD, Ox, Oxx, O2tstep] = O_eqn(O2, par)
         
         % C and O model only parameters
         for ju = (npx+1) : (npx+ncx)
-            for jo = (npx+ncx+1) : (npx+ncx+nox)
+            for jo = (npx+ncx+nbx+1) : (npx+ncx+nbx+nox)
                 kk = kk + 1 ;
                 if (par.opt_kru == on & ju == pindx.lkru)
                     if (par.opt_O2C_T == on & jo == pindx.O2C_T)
@@ -1278,6 +1275,39 @@ function [F, FD, Ox, Oxx, O2tstep] = O_eqn(O2, par)
                 RHS(:,kk) = -tmp ;
             end 
         end 
+
+        % Cell and O model only parameters
+        if par.Cellmodel == on
+            for ju = (npx+ncx+1) : (npx+ncx+nbx)
+               for jo = (npx+ncx+nbx+1) : (npx+ncx+nbx+nox)
+                  kk = kk + 1 ;
+                  if (par.opt_O2C_T == on & jo == pindx.O2C_T)
+                     tmp = d0(eta*kC*DOC + kappa_r*DOCr + kappa_l*DOCl + ...
+                              kappa_p*POC)*(O2C_O2C_T*dRdO.*Ox(:,ju)) + ...
+                           d0(eta*kC*DOCx(:,ju) + kappa_r*DOCrx(:,ju) + kappa_l*DOClx(:,ju) + ...
+                              kappa_p*POCx(:,ju))*dRdO.*Ox(:,jo).*O2C + ...
+                           d0(eta*kC*DOCx(:,ju) + kappa_r*DOCrx(:,ju) + kappa_l*DOClx(:,ju) + ...
+                              kappa_p*POCx(:,ju))*(O2C_O2C_T*R) + ...
+                           Ox(:,ju).*d2LdO2.*Ox(:,jo) ;
+                        
+                  elseif (par.opt_rO2C == on & jo == pindx.lrO2C)
+                     tmp = d0(eta*kC*DOC + kappa_r*DOCr + kappa_l*DOCl + ...
+                              kappa_p*POC)*(O2C_rO2C*dRdO.*Ox(:,ju)) + ...
+                           d0(eta*kC*DOCx(:,ju) + kappa_r*DOCrx(:,ju) + kappa_l*DOClx(:,ju) + ...
+                              kappa_p*POCx(:,ju))*dRdO.*Ox(:,jo).*O2C + ...
+                           d0(eta*kC*DOCx(:,ju) + kappa_r*DOCrx(:,ju) + kappa_l*DOClx(:,ju) + ...
+                              kappa_p*POCx(:,ju))*(O2C_rO2C*R) + ...
+                           Ox(:,ju).*d2LdO2.*Ox(:,jo) ;
+                  else 
+                     tmp = d0(eta*kC*DOCx(:,ju) + kappa_r*DOCrx(:,ju) + kappa_l*DOClx(:,ju) + ...
+                              kappa_p*POCx(:,ju))*dRdO.*Ox(:,jo).*O2C + ...
+                           Ox(:,ju).*d2LdO2.*Ox(:,jo) ;
+                  end
+
+                   RHS(:,kk) = -tmp ;
+               end
+            end
+        end
         
         % O model only parameters
         % O2C_T O2C_T
