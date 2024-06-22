@@ -103,6 +103,12 @@ function [par, C, Cx, Cxx] = eqCcycle_v2(x, par)
         lddT = x(par.pindx.lddT);
         par.ddT = exp(lddT);
     end
+
+    % ccP
+    if (par.opt_ccP)
+        lccP = x(par.pindx.lccP);
+        par.ccP = exp(lccP);
+    end
     %
     options.iprint = 1   ; 
     options.atol = 1e-12 ;          % reoptimized ver.  ---> -13
@@ -154,6 +160,7 @@ function [F,FD,par,Cx,Cxx] = C_eqn(X, par)
 
     PO4 = par.po4obs(iwet) ;    % phosphate obs
     Tz = par.Tz;                % temperature obs scaled between zero and 1.
+    DIPz = par.DIPz;            % PO4 obs scaled between 0 and 1. (only used in C2P_TPmodel)
     % fixed parameters
     kappa_p = par.kappa_p;
     kappa_l = par.kappa_l;
@@ -179,6 +186,10 @@ function [F,FD,par,Cx,Cxx] = C_eqn(X, par)
     if par.C2P_Tzmodel
         ccT   = par.ccT      ;
         ddT   = par.ddT      ;
+    elseif par.C2P_TPmodel
+        ccT   = par.ccT      ;
+        ccP   = par.ccP      ;
+        ddT   = par.ddT      ;
     else
         cc    = par.cc       ;
         dd    = par.dd       ;
@@ -192,6 +203,8 @@ function [F,FD,par,Cx,Cxx] = C_eqn(X, par)
 	elseif (par.C2P_Tzmodel)
         %Tz01 = par.Tz.*1.0e8 ; % par.Tz has been modified to be temperature scaled between zero and 1. rescaling is no longer needed.
 		C2P = 1./(ccT*Tz + ddT);
+    elseif (par.C2P_TPmodel)
+        C2P = 1./(ccT*Tz + ccP*DIPz + ddT) ; 
 	else
 		C2P = 1./(cc*PO4 + dd);
 	end
@@ -328,17 +341,27 @@ function [F,FD,par,Cx,Cxx] = C_eqn(X, par)
         pindx = par.pindx ;
         Z = sparse(nwet,1);
         if par.opt_cc==on | par.opt_dd==on
+            p2c = (cc*PO4 + dd) ;
             C2P_cc = -PO4./(cc*PO4 + dd).^2;
             C2P_dd = -1./(cc*PO4 + dd).^2;
             par.C2P_cc = C2P_cc;
             par.C2P_dd = C2P_dd;
         end
-        if (par.opt_ccT ==on | par.opt_ddT==on)
+        if (par.C2P_Tzmodel == on ) & (par.opt_ccT ==on | par.opt_ddT==on)
+            p2c = (ccT*Tz + ddT);
 			C2P_ccT = -Tz./(ccT*Tz + ddT).^2;
         	C2P_ddT = -1./(ccT*Tz + ddT).^2;
-        	par.C2P_ccT = C2P_ccT;
-        	par.C2P_ddT = C2P_ddT;
-		end
+        	par.C2P_ccT = C2P_ccT;  %unused
+        	par.C2P_ddT = C2P_ddT;  %unused
+		elseif (par.C2P_TPmodel == on ) & (par.opt_ccT ==on | par.opt_ddT==on | par.opt_ccP==on)
+            p2c = ccT*Tz + ccP*DIPz + ddT;
+            C2P_ccT = -Tz./(p2c.^2 ) ;
+            C2P_ddT = -1./(p2c.^2) ; 
+            C2P_ccP = -DIPz./(p2c.^2) ;
+            par.C2P_ccT = C2P_ccT; %unused
+        	par.C2P_ddT = C2P_ddT; %unused
+            par.C2P_ccP = C2P_ccP; %unused
+        end
         if par.Cellmodel == on  %(using eqC2Puptake)
 			C2Px   = par.C2Px;
 		end
@@ -614,7 +637,7 @@ function [F,FD,par,Cx,Cxx] = C_eqn(X, par)
         end
 
         % other C2P model options
-        if par.C2P_Tzmodel
+        if (par.C2P_Tzmodel | par.C2P_TPmodel)
             % ccT
             if (par.opt_ccT == on)
                 % note: no log transform
@@ -640,6 +663,20 @@ function [F,FD,par,Cx,Cxx] = C_eqn(X, par)
                         Z];
                 
                 RHS(:,pindx.lddT) = tmp;
+            end
+
+            % ccP
+            if (par.opt_ccP == on)
+                C2P_dxtmp = ccP*C2P_ccP; %dC2P/dlog(ccP)
+                tmp = [-((1-sigC-gamma)*RR)*(G*C2P_dxtmp); ...
+                        (1-sigC-gamma)*G*C2P_dxtmp; ...
+                        sigC*G*C2P_dxtmp; ...
+                        (1-sigC-gamma)*RR*(G*C2P_dxtmp); ...
+                        -2*(1-sigC-gamma)*RR*(G*C2P_dxtmp); ...
+                        -G*C2P_dxtmp; ...
+                        Z];
+                
+                RHS(:,pindx.lccP) = tmp;
             end
         end
 
