@@ -353,9 +353,9 @@ par.aveT   = nanmean(Tz3d(:,:,1:3),3) ;                    % tsnanmean하고 큰
 %-------------------- normalize WOA phosphate obs --------------------
 %%% for C2P_TPmodel
 vP = par.po4obs(iwet) ;
-DIPz = (vP - min(vP))./(max(vP) - min(vP)) ; % could add +1e-6 to top, but DIPz = 0 shouldnt be a problem for C2Pfunction.
-par.DIPz = DIPz;
-clear DIPz vP
+PO4z = (vP - min(vP))./(max(vP) - min(vP)) ; % could add +1e-6 to top, but PO4z = 0 shouldnt be a problem for C2Pfunction.
+par.PO4z = PO4z;
+clear PO4z vP
 
 %-------------------- correct WOA o2 concentration --------------------
 o2obs_c = M3d*0;

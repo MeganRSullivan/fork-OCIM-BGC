@@ -160,7 +160,7 @@ function [F,FD,par,Cx,Cxx] = C_eqn(X, par)
 
     PO4 = par.po4obs(iwet) ;    % phosphate obs
     Tz = par.Tz;                % temperature obs scaled between zero and 1.
-    DIPz = par.DIPz;            % PO4 obs scaled between 0 and 1. (only used in C2P_TPmodel)
+    PO4z = par.PO4z;            % PO4 obs scaled between 0 and 1. (only used in C2P_TPmodel)
     % fixed parameters
     kappa_p = par.kappa_p;
     kappa_l = par.kappa_l;
@@ -204,7 +204,7 @@ function [F,FD,par,Cx,Cxx] = C_eqn(X, par)
         %Tz01 = par.Tz.*1.0e8 ; % par.Tz has been modified to be temperature scaled between zero and 1. rescaling is no longer needed.
 		C2P = 1./(ccT*Tz + ddT);
     elseif (par.C2P_TPmodel)
-        C2P = 1./(ccT*Tz + ccP*DIPz + ddT) ; 
+        C2P = 1./(ccT*Tz + ccP*PO4z + ddT) ; 
 	else
 		C2P = 1./(cc*PO4 + dd);
 	end
@@ -354,10 +354,10 @@ function [F,FD,par,Cx,Cxx] = C_eqn(X, par)
         	par.C2P_ccT = C2P_ccT;  %unused
         	par.C2P_ddT = C2P_ddT;  %unused
 		elseif (par.C2P_TPmodel == on ) & (par.opt_ccT ==on | par.opt_ddT==on | par.opt_ccP==on)
-            p2c = ccT*Tz + ccP*DIPz + ddT;
+            p2c = ccT*Tz + ccP*PO4z + ddT;
             C2P_ccT = -Tz./(p2c.^2 ) ;
             C2P_ddT = -1./(p2c.^2) ; 
-            C2P_ccP = -DIPz./(p2c.^2) ;
+            C2P_ccP = -PO4z./(p2c.^2) ;
             par.C2P_ccT = C2P_ccT; %unused
         	par.C2P_ddT = C2P_ddT; %unused
             par.C2P_ccP = C2P_ccP; %unused
