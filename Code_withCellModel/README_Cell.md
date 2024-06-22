@@ -4,6 +4,9 @@ This directory contains the model code for running OCIM-BGC using a cellular gro
 ## File structure
 
 ## Development / Notes
+### branches under development
+- `C2P_TPfun` : adding a new option for the C2P function. P2C is a linear function of both phosphate and temperature. PO4 and Temperature terms in the C2P funciton are normalized between zero and 1, to make it easier to compare the relative strength of the phosphate and temperature dependence.  
+
 
 ### issues
 [RESOLVED]: Error in Hessian for parameter pairs with Q10Photo and RO2C
