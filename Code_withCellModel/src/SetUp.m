@@ -349,7 +349,13 @@ par.aveT   = nanmean(Tz3d(:,:,1:3),3) ;                    % tsnanmean하고 큰
 %       % why normalized temp?
 % vT: vectorized temperature. used in eqPcycle, eqCcycle, eqOcycle: for Q10 exponent for kC and kP
 % Tz: normalized temperature. used in in eqCcycle or C2P_Tzmodel & in eqOcycle for O2C
-                                                         
+      
+%-------------------- normalize WOA phosphate obs --------------------
+%%% for C2P_TPmodel
+vP = par.po4obs(iwet) ;
+DIPz = (vP - min(vP))./(max(vP) - min(vP)) ; % could add +1e-6 to top, but DIPz = 0 shouldnt be a problem for C2Pfunction.
+par.DIPz = DIPz;
+clear DIPz vP
 
 %-------------------- correct WOA o2 concentration --------------------
 o2obs_c = M3d*0;
