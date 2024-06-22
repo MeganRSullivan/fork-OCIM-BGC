@@ -85,6 +85,7 @@ par.opt_dd    = off ;
 % temperature-dependent function parameters
 par.opt_ccT   = off ; 
 par.opt_ddT   = off ;
+par.opt_ccP   = off ;
 % Trait-based Cellular Growth Model parameters
 par.opt_Q10Photo     = on ; % opt
 par.opt_fStorage     = on ; % opt
