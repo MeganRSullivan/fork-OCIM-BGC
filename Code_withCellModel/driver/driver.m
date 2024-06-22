@@ -12,14 +12,15 @@ format short
 % --- addpath to model code -----
 addpath('../src/')
 
-VerName = 'optPCO_Cell_v2_'; 		% optional version name. leave as an empty character array
+VerName = 'optPCO_TPfun_v2_'; 		% optional version name. leave as an empty character array
 					% or add a name ending with an underscore
 VerNum = '';		% optional version number for testing
 
 % Choose C2P function
-par.C2Pfunctiontype = 'C';
+par.C2Pfunctiontype = 'M';
 % 'P' -> PO4 function ; 'C' -> Cell model; 'T' -> Temperature function; 'R' -> constant value (Redfield)
-% 
+% 'M' -> (Multi) Temp and PO4 function; 
+%
 GridVer  = 91  ;
 operator = 'A' ;
 % GridVer: choose from 90 and 91; Ver 90 is for a Transport
