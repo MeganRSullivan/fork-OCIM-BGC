@@ -791,6 +791,14 @@ function [F,FD,par,Cx,Cxx] = C_eqn(X, par)
         	C2P_dd_dd = 2./p2c.^3;
         	C2P_cc_cc = (2*Tz.^2)./p2c.^3;
         	C2P_cc_dd = (2*Tz)./p2c.^3;
+        elseif par.TPmodel ==on;
+            p2c = ccT*Tz + ccP*PO4z + ddT;
+            C2P_cc_cc   = (2*Tz.^2)./p2c.^3; 
+            C2P_cc_ccP  = (2*Tz.*PO4z)./p2c.^3; %d(dC2P/dccT)/dccP
+            C2P_cc_dd   = (2*Tz)./p2c.^3;
+            C2P_ccP_ccP = (2*PO4z.^2)./p2c.^3;
+            C2P_ccP_dd  = (2*PO4z)./p2c.^3;
+            C2P_dd_dd   = 2./p2c.^3;
 		else
         	p2c       = cc*PO4 + dd;
         	C2P_dd_dd = 2./p2c.^3;
