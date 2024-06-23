@@ -383,7 +383,7 @@ function  [x, ibad] = ResetPar(x, par);
             end
         end
 
-		if (par.opt_ccT == on & par.opt_ddT == on)
+		if (par.opt_ccT == on & par.opt_ccP == off & par.opt_ddT == on)
             iccT = pindx.ccT ;
             ccT1 = x(iccT)   ;
             ccT0 = x0(iccT)  ;
@@ -400,6 +400,31 @@ function  [x, ibad] = ResetPar(x, par);
                 x(iddT) = log( exp(x0(iddT)) * (0.1*rand + 0.95) );
                 x(iccT) = x0(iccT) + (0.02*rand - 0.01);
 				ibad = [ibad, iccT, iddT];
+            end
+        end
+
+        if (par.opt_ccT == on & par.opt_ccP == on & par.opt_ddT == on)
+            iccT = pindx.ccT ;
+            ccT1 = x(iccT)   ;
+            ccT0 = x0(iccT)  ;
+            %
+            iccP = pindx.lccP ;
+			ccP1 = exp(x(iccP))  ;
+            ccP0 = exp(x0(iccP)) ;
+            %
+            iddT  = pindx.lddT    ;
+            ddT1  = exp(x(iddT))  ;
+            ddT0  = exp(x0(iddT)) ;
+            % C2P = 1./(ccT*Tz + ccP*PO4z + ddT) ; 
+            c2p1 = 1./(ccT1*par.Tz + ccP1*par.PO4z + ddT1) ;
+			c2p0 = 1./(ccT0*par.Tz + ccP0*par.PO4z + ddT0) ;
+            mc2p1 = mean(c2p1) ;
+            mc2p0 = mean(c2p0) ;
+            if any(c2p1 < 0) 
+                x(iddT) = log( exp(x0(iddT)) * (0.1*rand + 0.95) );
+                x(iccT) = x0(iccT) + (0.02*rand - 0.01);
+                x(iccP) = log( exp(x0(iccP))*(0.1*rand + 0.95) );
+				ibad = [ibad, iccT, iccP, iddT];
             end
         end
     end 

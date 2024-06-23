@@ -30,8 +30,9 @@ function PrintPar(x, par);
             fprintf('kdC     is  % 3.2e \n', par.kdC)   ;
             fprintf('R_Si    is  % 3.2e \n', par.R_Si)  ;
             fprintf('rR      is  % 3.2e \n', par.rR)    ;
-            if (par.C2P_Tzmodel ==on)
+            if (par.C2P_Tzmodel ==on | par.C2P_TPmodel ==on )
                 fprintf('ccT     is  % 3.2e \n', par.ccT)   ;
+                fprintf('ccP     is  % 3.2e \n', par.ccP)   ;
                 fprintf('ddT     is  % 3.2e \n', par.ddT)   ;
             else
                 fprintf('cc      is  % 3.2e \n', par.cc)    ;
@@ -220,6 +221,11 @@ function PrintPar(x, par);
             icc = par.pindx.ccT;
             fprintf('current ccT     is  % 3.2e \n', x(icc));
             xhat.ccT = x(icc);
+        end
+        if (par.opt_ccP == on)
+            iccP = par.pindx.lccP;
+            fprintf('current ccP     is  % 3.2e \n', exp(x(iccP)));
+            xhat.ccP = exp(x(iccP));
         end
         if (par.opt_ddT == on)
             idd = par.pindx.lddT;

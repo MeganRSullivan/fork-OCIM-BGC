@@ -149,7 +149,7 @@ function par = SetPar(par)
         par.rR = 2.34e-02 ;
     end
     % C:P function options
-    if (par.C2P_Tzmodel)
+    if (par.C2P_Tzmodel | par.C2P_TPmodel)
 		if exist('xhat') & isfield(xhat,'ccT')
 	        par.ccT = xhat.ccT  ;
 	    else
@@ -159,6 +159,11 @@ function par = SetPar(par)
 	        par.ddT = xhat.ddT  ;
         else
 			par.ddT = 1.67e-02; 	% intercept for P:C as a linear function of Temperature
+	    end
+        if exist('xhat') & isfield(xhat,'ccP')
+	        par.ccP = xhat.ccP  ;
+	    else
+			par.ccP = 9.58e-03 ;	% slope for P:C as a linear function of DIP 
 	    end
 	else
         if (par.C2P_constant)

@@ -206,6 +206,15 @@ function par = PackPar(par)
             p0   = [p0; ccT]      ;
             par.pindx.ccT = strt  : length(p0);
         end
+        % ccP
+        if (par.opt_ccP == on)
+            ncx  = ncx + 1        ;
+            ccP   = par.ccP       ;
+            lccP  = log(ccP)      ;
+            strt = length(p0) + 1 ;
+            p0   = [p0; lccP]     ;
+            par.pindx.lccP = strt  : length(p0);
+        end
         % ddT
         if (par.opt_ddT == on)
             ncx  = ncx + 1        ;
