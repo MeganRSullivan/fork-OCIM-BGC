@@ -62,24 +62,34 @@ if par.Cmodel == on
   switch(par.C2Pfunctiontype)
     case 'P'
       par.C2P_PO4model = on;
-      par.C2P_Tzmodel = off;
-      par.Cellmodel = off;
+      par.C2P_Tzmodel  = off;
+      par.C2P_TPmodel  = off;
+      par.Cellmodel    = off;
       par.C2P_constant = off;
     case 'C'
-      par.Cellmodel = on;
+      par.Cellmodel    = on;
       par.C2P_PO4model = off;
-      par.C2P_Tzmodel = off;
+      par.C2P_Tzmodel  = off;
+      par.C2P_TPmodel  = off;
       par.C2P_constant = off;
     case 'T'
-      par.C2P_Tzmodel = on;
+      par.C2P_Tzmodel  = on;
       par.C2P_PO4model = off;
-      par.Cellmodel = off;
+      par.C2P_TPmodel  = off;
+      par.Cellmodel    = off;
       par.C2P_constant = off;
     case 'R'
       par.C2P_constant = on;
-      par.C2P_Tzmodel = off;
+      par.C2P_Tzmodel  = off;
       par.C2P_PO4model = off;
-      par.Cellmodel = off;
+      par.C2P_TPmodel  = off;
+      par.Cellmodel    = off;
+    case 'M'
+      par.C2P_TPmodel  = on;
+      par.C2P_constant = off;
+      par.C2P_Tzmodel  = off;
+      par.C2P_PO4model = off;
+      par.Cellmodel    = off; 
   end
 
   if par.Cellmodel == on
@@ -93,19 +103,30 @@ if par.Cmodel == on
       fprintf('   -- Cell model depends on observed nutrient fields \n')
     end
     % check C:P parameter flags
-    if any([par.opt_cc, par.opt_dd, par.opt_ccT, par.opt_ddT])
+    if any([par.opt_cc, par.opt_dd, par.opt_ccT, par.opt_ddT, par.opt_ccP])
       fprintf('Resetting opt_ccT, opt_ddT, opt_cc, and opt_dd to off ; cannot optimize linear C2P function parameters when cell model is on \n')
       par.opt_ccT = off;
       par.opt_ddT = off;
       par.opt_cc = off;
       par.opt_dd = off;
+      par.opt_ccP = off;
     end
 
   elseif par.C2P_Tzmodel == on
     fprintf('-- P:C is a linear function of WOA observed Temperature (normalized) \n')
     % check C:P parameter flags
-    if any([par.opt_cc, par.opt_dd])
+    if any([par.opt_cc, par.opt_dd, par.opt_ccP])
       fprintf('Resetting opt_cc and opt_dd to off ; cannot optimize cc and dd when C2P is a function of temperature \n')
+      par.opt_cc = off;
+      par.opt_dd = off;
+      par.opt_ccP = off;
+    end
+
+  elseif par.C2P_TPmodel == on
+    fprintf('-- P:C is a linear function of WOA observed Temperature and Phosphate (both normalized) \n')
+    % check C:P parameter flags
+    if any([par.opt_cc, par.opt_dd])
+      fprintf('Resetting opt_cc and opt_dd to off ; cannot optimize cc and dd when C2P is a function of normalized temperature and phosphate \n')
       par.opt_cc = off;
       par.opt_dd = off;
     end
@@ -113,11 +134,12 @@ if par.Cmodel == on
   elseif par.C2P_constant == on 
     fprintf('--- P:C is a constant value globally  \n')
     % check C:P parameter flags
-    if any([par.opt_ccT, par.opt_ddT, par.opt_cc])
+    if any([par.opt_ccT, par.opt_ddT, par.opt_cc, par.opt_ccP])
       fprintf('Resetting opt_cc, opt_ccT and opt_ddT to off ; only use opt_dd optimize a constant C2P value \n')
       par.opt_ccT = off;
       par.opt_ddT = off;
       par.opt_cc  = off;
+      par.opt_ccP = off;
     end
 
   else
@@ -140,9 +162,10 @@ if par.Cmodel == on
 else
   fprintf('--- Carbon cycle model is OFF ------ \n')
   par.C2P_constant = off;
-  par.C2P_Tzmodel = off;
+  par.C2P_Tzmodel  = off;
   par.C2P_PO4model = off;
-  par.Cellmodel = off;
+  par.C2P_TPmodel  = off;
+  par.Cellmodel    = off;
 end  % end Cmodel
 fprintf('\n')
 
@@ -337,6 +360,12 @@ par.aveT   = nanmean(Tz3d(:,:,1:3),3) ;                    % tsnanmean하고 큰
 % vT: eqPcylce, eqCcycle에서 Q10의 tf에 쓰임.
 % Tz: aveT에 쓰일때말고는 모르겠음. 1e-8을 왜하는지? ---> eqOcycle에서는 다시 10^8 곱해서 사용.
                                                          
+%-------------------- normalize WOA phosphate obs --------------------
+%%% for C2P_TPmodel
+vP = par.po4obs(iwet) ;
+PO4z = (vP - min(vP))./(max(vP) - min(vP)) ; % could add +1e-6 to top, but PO4z = 0 shouldnt be a problem for C2Pfunction.
+par.PO4z = PO4z;
+clear PO4z vP
 
 %-------------------- correct WOA o2 concentration --------------------
 % o2obs_c = M3d*0;
@@ -398,11 +427,11 @@ par.DICbar = sum(par.dicraw(iwet(idic)).*dVt(iwet(idic)))/sum(dVt(iwet(idic))) ;
 %-------------------- prepare NPP for the model ----------------------
 % remove this P:C unit conversion. a constant stoichiometric scaling is implicit in alpha
 % par.p2c = 0.006 + 0.0069*DIP_obs ;         
-par.p2c = (1/117) * M3d ;                % 이건 아마 redfield ratio인듯?
+par.p2c = (1/117) * M3d ;                % updated redfield ratio (Anderson)
 inan = find(isnan(npp(:)) | npp(:) < 0) ;
 npp(inan)  = 0  ;
 
-par.nl = 2 ;                              % nl이 뭐지? NPP 발생하는 layer를 의미하나?
+par.nl = 2 ;                              % number of layers in the euphotic zone (where NPP occurs)
 par.Lambda = M3d*0 ;
 par.nppMSK = M3d*0 ;
 
