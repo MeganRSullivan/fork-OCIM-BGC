@@ -12,13 +12,14 @@ format short
 % --- addpath to model code -----
 addpath('../src/')
 
-VerName = 'optPCO_Tz_SetUpv2_N23in_'; 		% optional version name. leave as an empty character array
+VerName = 'optPCO_TPfun_SetUpv2_N23in_nosmooth_'; 		% optional version name. leave as an empty character array
 					% or add a name ending with an underscore
 VerNum = '';		% optional version number for testing
 
 % Choose C2P function
-par.C2Pfunctiontype = 'T';
+par.C2Pfunctiontype = 'M';
 % 'P' -> PO4 function ; 'C' -> Cell model; 'T' -> Temperature function; 'R' -> constant value (Redfield)
+% 'M' -> (Multi) Temp and PO4 function; 
 % 
 GridVer  = 91  ;
 operator = 'A' ;
@@ -86,6 +87,7 @@ par.opt_dd    = off  ;
 % temperature-dependent function parameters
 par.opt_ccT   = on ; 
 par.opt_ddT   = on ;
+par.opt_ccP   = on ;
 % Trait-based Cellular Growth Model parameters
 par.opt_Q10Photo     = on ; % opt
 par.opt_fStorage     = on ; % opt
@@ -168,7 +170,7 @@ par.fxhat = fxhat ;
 par.fxpar = fxpar ;
 
 % -------------------update initial guesses --------------
-if isfile(par.fnameload)
+if isfield(par,'fnameload') & isfile(par.fnameload)
     load(par.fnameload)
 end 
 
