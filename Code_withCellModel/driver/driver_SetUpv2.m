@@ -264,11 +264,15 @@ if(Gtest);
     fprintf('saving optimized parameters to file: %s \n',fxhat)
     save(fxhat, 'xhat')
 elseif (par.optim)
+    % save SetUp fields
+    fprintf('saving initial SetUp par structure to file: %s \n',par.fxpar)
+    save(par.fxpar, 'par', '-v7.3')
+    % optimize parameters
     [xsol,fval,exitflag] = fminunc(myfun,x0,options);
     fprintf('objective function tolerance = %5.1e \n',objfuntolerance);
-    fprintf('----fminunc complete----\n')
+    fprintf('----fminunc complete----\n\n')
     [f,fx,fxx,data,xhat] = neglogpost(xsol,par);
-    fprintf('----neglogpost solved for final parameter values----\n')
+    fprintf('----neglogpost solved for final parameter values----\n\n')
     xhat.pindx = par.pindx;
     xhat.f   = f   ;
     xhat.fx  = fx  ;
