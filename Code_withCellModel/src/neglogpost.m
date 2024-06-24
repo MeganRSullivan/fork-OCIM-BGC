@@ -219,8 +219,9 @@ function [f, fx, fxx, data, xhat] = neglogpost(x, par)
             allparams.(parameter_names_C{ii}) = par.(parameter_names_C{ii});
         end
         %C2P model params
-        if par.C2P_Tzmodel
-            allparams.ccT = par.ccT; 
+        if (par.C2P_Tzmodel | par.C2P_TPmodel)
+            allparams.ccT = par.ccT;
+            allparams.ccP = par.ccP; 
             allparams.ddT = par.ddT;
         else
             allparams.cc = par.cc; 
