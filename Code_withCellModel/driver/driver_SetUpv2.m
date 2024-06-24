@@ -175,9 +175,9 @@ if isfield(par,'fnameload') & isfile(par.fnameload)
 end 
 
 % -------------------update initial guesses --------------
-if isfile(par.fname)
-    load(par.fname)
-end 
+% if isfile(par.fname)
+%     load(par.fname)
+% end 
 
 %---------------- inital guesses on C and O ---------------
 if par.Cmodel == on 
