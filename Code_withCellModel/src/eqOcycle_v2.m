@@ -57,6 +57,7 @@ function [par, O2, Ox, Oxx] = eqOcycle_v2(x, par)
             %
             if (ierr ~= 0)
 		         fprintf('Warning: O2model did not converge even after the time stepping method.\n')
+               keyboard
 	         end
 	      end 
     else
