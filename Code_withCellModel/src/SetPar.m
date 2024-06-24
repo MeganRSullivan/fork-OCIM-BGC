@@ -163,7 +163,7 @@ function par = SetPar(par)
         if exist('xhat') & isfield(xhat,'ccP')
 	        par.ccP = xhat.ccP  ;
 	    else
-			par.ccP = 9.58e-03 ;	% slope for P:C as a linear function of DIP 
+			par.ccP = 1e-06 ;	% slope for P:C as a linear function of DIP 
 	    end
 	else
         if (par.C2P_constant)
