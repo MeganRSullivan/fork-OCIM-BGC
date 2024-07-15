@@ -13,7 +13,7 @@ format short
 addpath('../src/')
 
 %VerName = 'optPCO_GM15_SetUpv2_N23in_testNPPp2c_Nature_ccdd_'; 		% optional version name. leave as an empty character array
-VerName = 'optPCO_GM15_prescribe_C2P_N23in_NPPp2c_GM15_optGBC2024_'; 		% optional version name. leave as an empty character array
+VerName = 'optPCO_Tz_prescribe_C2P_N23in_NPPp2c_Tz_optGBC2024_'; 		% optional version name. leave as an empty character array
 					% or add a name ending with an underscore
 VerNum = '';		% optional version number for testing
 
@@ -21,7 +21,7 @@ VerNum = '';		% optional version number for testing
 par.C2Pfunctiontype = 'L';
 % 'P' -> PO4 function ; 'C' -> Cell model; 'T' -> Temperature function; 'R' -> constant value (Redfield)
 % 'L' -> load spatial pattern from a file. 
-par.fc2pload = '../../DATA/BGC_24layer/C2Puptake_GM15_opt_GBC2024.mat';
+par.fc2pload = '../../DATA/BGC_24layer/C2Puptake_Tz_opt_GBC2024.mat';
 % 
 GridVer  = 91  ;
 operator = 'A' ;
