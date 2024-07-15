@@ -137,7 +137,7 @@ if par.Cmodel == on
       par.opt_dd = off;
     end
     % load C2P map
-    fprintf('C:P is optimal Cell Model C:P from Sullivan et al 2024 (GBC) \n')
+    % fprintf('C:P is optimal C:P from Sullivan et al 2024 (GBC) \n')
     % par.fc2pload = '../../DATA/BGC_24layer/C2Puptake_CellModel_opt_GBC2024.mat';
     load(par.fc2pload,'C2Puptake')
     par.C2Pprescribed = C2Puptake;
@@ -433,7 +433,10 @@ par.DICbar = sum(par.dicraw(iwet(idic)).*dVt(iwet(idic)))/sum(dVt(iwet(idic))) ;
 %-------------------- prepare NPP for the model ----------------------
 % NPP unit (Nowicki) = (mmolC/m^2/yr)
 % remove this P:C unit conversion. a constant stoichiometric scaling is implicit in alpha
-if ~isfield(par,'SetUp_options') | par.SetUp_options.NPPp2c_type == 0
+if par.C2P_loadprescribed 
+  fprintf('Sat NPP p2c conversion: 1/(prescribed C2Puptake field loaded from file) \n')
+  %par.p2c = 1./C2Puptake; %set previously
+elseif ~isfield(par,'SetUp_options') | par.SetUp_options.NPPp2c_type == 0
   fprintf('Sat NPP p2c conversion: GM15 \n')
   par.p2c = 0.006 + 0.0069*DIP_obs ;         
 elseif par.SetUp_options.NPPp2c_type == 1
