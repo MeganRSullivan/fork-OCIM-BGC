@@ -9,13 +9,15 @@ format short
 addpath('../src_reoptNature/')
 
 % --- name to identify the run output ---
-VerName = 'reoptNature_GM15_'; 		% optional version name. leave as an empty character array
+VerName = 'reoptNature_GM15_npp2_CAFE_'; 		% optional version name. leave as an empty character array
 					% or add a name ending with an underscore
 VerNum = '';		% optional version number for testing
 
 % Choose C2P function
 par.C2Pfunctiontype = 'P';
 % 'P' -> PO4 function ; 'C' -> Cell model; 'T' -> Temperature function; 'R' -> constant value (Redfield)
+%
+par.nppVer = 2; % 1 = CbPM; 2 = CAFE; (Nowicki)
 %
 GridVer  = 91  ;
 operator = 'A' ;
@@ -34,11 +36,11 @@ par.optim   = on ;
 par.Cmodel  = on ; 
 par.Omodel  = on ; 
 par.Simodel = off ;
-par.LoadOpt = on ; % if load optimial par. 
+par.LoadOpt = off ; % if load optimial par. 
 % to load parameter values from a run with a different name.
-par.fxhatload = '/DFS-L/DATA/primeau/hojons1/Nature2023_BGC_reoptimized/src_Nature_parameter_Megan/MSK91/CTL_He_PCO_Gamma0_kl12h_O5_POC2DIC_GM15_Nowicki_npp1_aveTeu_diffSig_O2C_uniEta_DICrmAnthro_2L_Pnormal_DIP1e+00_DIC1e+00_DOC1e+00_ALK1e+00_O21e+00_xhat.mat' 
+% par.fxhatload = '/DFS-L/DATA/primeau/hojons1/Nature2023_BGC_reoptimized/src_Nature_parameter_Megan/MSK91/CTL_He_PCO_Gamma0_kl12h_O5_POC2DIC_GM15_Nowicki_npp1_aveTeu_diffSig_O2C_uniEta_DICrmAnthro_2L_Pnormal_DIP1e+00_DIC1e+00_DOC1e+00_ALK1e+00_O21e+00_xhat.mat' 
 % to use different model output for initial CO guess. 
-par.fnameload = '/DFS-L/DATA/primeau/hojons1/Nature2023_BGC_reoptimized/src_Nature_parameter_Megan/MSK91/CTL_He_PCO_Gamma0_kl12h_O5_POC2DIC_GM15_Nowicki_npp1_aveTeu_diffSig_O2C_uniEta_DICrmAnthro_2L_Pnormal_DIP1e+00_DIC1e+00_DOC1e+00_ALK1e+00_O21e+00.mat' 
+% par.fnameload = '/DFS-L/DATA/primeau/hojons1/Nature2023_BGC_reoptimized/src_Nature_parameter_Megan/MSK91/CTL_He_PCO_Gamma0_kl12h_O5_POC2DIC_GM15_Nowicki_npp1_aveTeu_diffSig_O2C_uniEta_DICrmAnthro_2L_Pnormal_DIP1e+00_DIC1e+00_DOC1e+00_ALK1e+00_O21e+00.mat' 
 par.dynamicP = off ; % if on, cell model uses modeled DIP. if off, cell model uses WOA observed DIP field.
 par.Cisotope = off ;
 
@@ -149,10 +151,11 @@ end
 % -------------------- Set up output files ---------------
 par.fname = strcat(fname,'.mat') ; 
 fxhat     = strcat(fname,'_xhat.mat');
+fxpar     = strcat(fname,'_par.mat');
 par.fxhat = fxhat ; 
-
+par.fxpar = fxpar;
 % -------------------update initial guesses --------------
-if isfile(par.fnameload)
+if isfield(par,'fnameload') & isfile(par.fnameload)
     load(par.fnameload)
 end 
 

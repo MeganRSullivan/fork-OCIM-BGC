@@ -180,7 +180,7 @@ elseif GridVer == 91
     %
     fname = 'biopump_model_output_Nowicki.nc';
     NPP = ncread(fname,'NPP'); % 1 = CbPM; 2 = CAFE
-    npp = NPP(:,:,1); % mmol/m2/yr 
+    npp = NPP(:,:,par.nppVer); % mmol/m2/yr 
     load M3d91x180x24.mat MSKS
     load teng_region_91x180.mat R
     load Sobs_91x180x24.mat
