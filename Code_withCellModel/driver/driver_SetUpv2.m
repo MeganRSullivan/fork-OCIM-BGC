@@ -13,7 +13,7 @@ format short
 addpath('../src/')
 
 %VerName = 'optPCO_GM15_SetUpv2_N23in_testNPPp2c_Nature_ccdd_'; 		% optional version name. leave as an empty character array
-VerName = 'optPCO_Const_prescribe_C2P_N23in_NPPp2c_Const_optGBC2024_'; 		% optional version name. leave as an empty character array
+VerName = 'optPCO_Cell_prescribe_C2P_N23in_NPPp2c_Cell_optGBC2024_continued_'; 		% optional version name. leave as an empty character array
 					% or add a name ending with an underscore
 VerNum = '';		% optional version number for testing
 
@@ -21,7 +21,7 @@ VerNum = '';		% optional version number for testing
 par.C2Pfunctiontype = 'L';
 % 'P' -> PO4 function ; 'C' -> Cell model; 'T' -> Temperature function; 'R' -> constant value (Redfield)
 % 'L' -> load spatial pattern from a file. 
-par.fc2pload = '../../DATA/BGC_24layer/C2Puptake_Const_opt_GBC2024.mat';
+par.fc2pload = '../../DATA/BGC_24layer/C2Puptake_CellModel_opt_GBC2024.mat';
 % 
 GridVer  = 91  ;
 operator = 'A' ;
@@ -49,11 +49,12 @@ par.LoadOpt = on ; % if load optimial parameters.
 %par.fxhatload = '../../output/optPonly_CTL_He_P_xhat.mat';
 %par.fxhatload = '../output/optPCO_GM15_CTL_He_PCOv1_DOC1_DOP0_xhat.mat';
 % par.fxhatload = '/DFS-L/DATA/primeau/hojons1/Nature2023_BGC_reoptimized/src_Nature_parameter_Megan/MSK91/CTL_He_PCO_Gamma0_kl12h_O5_POC2DIC_GM15_Nowicki_npp1_aveTeu_diffSig_O2C_uniEta_DICrmAnthro_2L_Pnormal_DIP1e+00_DIC1e+00_DOC1e+00_ALK1e+00_O21e+00_xhat.mat' 
-par.fxhatload = '/DFS-L/DATA/primeau/hojons1/Nature2023_BGC_reoptimized/src_Nature_parameter_Megan/MSK91/CTL_He_PCO_Gamma0_kl12h_O5_POC2DIC_GM15_Nowicki_npp1_aveTeu_diffSig_O2C_uniEta_DICrmAnthro_2L_Pnormal_DIP1e+00_DIC1e+00_DOC1e+00_ALK1e+00_O21e+00_xhat.mat' 
+par.fxhatload = '/DFS-L/DATA/primeau/meganrs/fork-OCIM-BGC/Code_withCellModel/output/optPCO_Cell_prescribe_C2P_N23in_NPPp2c_CellModel_optGBC2024_CTL_He_PCO_DOC1_DOP0_xhat.mat' 
 
 par.dynamicP = off ; % if on, cell model uses modeled DIP. if off, cell model uses WOA observed DIP field.
 
-par.fnameload = '/DFS-L/DATA/primeau/hojons1/Nature2023_BGC_reoptimized/src_Nature_parameter_Megan/MSK91/CTL_He_PCO_Gamma0_kl12h_O5_POC2DIC_GM15_Nowicki_npp1_aveTeu_diffSig_O2C_uniEta_DICrmAnthro_2L_Pnormal_DIP1e+00_DIC1e+00_DOC1e+00_ALK1e+00_O21e+00.mat' ;
+%par.fnameload = '/DFS-L/DATA/primeau/hojons1/Nature2023_BGC_reoptimized/src_Nature_parameter_Megan/MSK91/CTL_He_PCO_Gamma0_kl12h_O5_POC2DIC_GM15_Nowicki_npp1_aveTeu_diffSig_O2C_uniEta_DICrmAnthro_2L_Pnormal_DIP1e+00_DIC1e+00_DOC1e+00_ALK1e+00_O21e+00.mat' ;
+par.fnameload = '/DFS-L/DATA/primeau/meganrs/fork-OCIM-BGC/Code_withCellModel/output/optPCO_Cell_prescribe_C2P_N23in_NPPp2c_CellModel_optGBC2024_CTL_He_PCO_DOC1_DOP0.mat' ;
 
 par.dopscale = 0.0 ;
 par.dipscale = 1.0 ;
