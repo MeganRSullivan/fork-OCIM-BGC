@@ -12,17 +12,19 @@ format short
 % --- addpath to model code -----
 addpath('../src/')
 
-%VerName = 'optPCO_GM15_SetUpv2_N23in_testNPPp2c_Nature_ccdd_'; 		% optional version name. leave as an empty character array
-VerName = 'optPCO_Cell_prescribe_C2P_N23in_NPPp2c_Cell_optGBC2024_continued_'; 		% optional version name. leave as an empty character array
+VerName = 'optPCO_GM15_N23in_npp2_CAFE_NPPp2c_const_'; 		% optional version name. leave as an empty character array
+%VerName = 'optPCO_Cell_prescribe_C2P_N23in_NPPp2c_Cell_optGBC2024_continued_'; 		% optional version name. leave as an empty character array
 					% or add a name ending with an underscore
 VerNum = '';		% optional version number for testing
 
 % Choose C2P function
-par.C2Pfunctiontype = 'L';
+par.C2Pfunctiontype = 'P';
 % 'P' -> PO4 function ; 'C' -> Cell model; 'T' -> Temperature function; 'R' -> constant value (Redfield)
 % 'L' -> load spatial pattern from a file. 
-par.fc2pload = '../../DATA/BGC_24layer/C2Puptake_CellModel_opt_GBC2024.mat';
+% par.fc2pload = '../../DATA/BGC_24layer/C2Puptake_CellModel_opt_GBC2024.mat';
 % 
+par.nppVer = 2; % 1 = CbPM; 2 = CAFE; (Nowicki)
+%
 GridVer  = 91  ;
 operator = 'A' ;
 % GridVer: choose from 90 and 91; Ver 90 is for a Transport
@@ -49,12 +51,12 @@ par.LoadOpt = on ; % if load optimial parameters.
 %par.fxhatload = '../../output/optPonly_CTL_He_P_xhat.mat';
 %par.fxhatload = '../output/optPCO_GM15_CTL_He_PCOv1_DOC1_DOP0_xhat.mat';
 % par.fxhatload = '/DFS-L/DATA/primeau/hojons1/Nature2023_BGC_reoptimized/src_Nature_parameter_Megan/MSK91/CTL_He_PCO_Gamma0_kl12h_O5_POC2DIC_GM15_Nowicki_npp1_aveTeu_diffSig_O2C_uniEta_DICrmAnthro_2L_Pnormal_DIP1e+00_DIC1e+00_DOC1e+00_ALK1e+00_O21e+00_xhat.mat' 
-par.fxhatload = '/DFS-L/DATA/primeau/meganrs/fork-OCIM-BGC/Code_withCellModel/output/optPCO_Cell_prescribe_C2P_N23in_NPPp2c_CellModel_optGBC2024_CTL_He_PCO_DOC1_DOP0_xhat.mat' 
+% par.fxhatload = '/DFS-L/DATA/primeau/meganrs/fork-OCIM-BGC/Code_withCellModel/output/optPCO_Cell_prescribe_C2P_N23in_NPPp2c_CellModel_optGBC2024_CTL_He_PCO_DOC1_DOP0_xhat.mat' 
 
 par.dynamicP = off ; % if on, cell model uses modeled DIP. if off, cell model uses WOA observed DIP field.
 
 %par.fnameload = '/DFS-L/DATA/primeau/hojons1/Nature2023_BGC_reoptimized/src_Nature_parameter_Megan/MSK91/CTL_He_PCO_Gamma0_kl12h_O5_POC2DIC_GM15_Nowicki_npp1_aveTeu_diffSig_O2C_uniEta_DICrmAnthro_2L_Pnormal_DIP1e+00_DIC1e+00_DOC1e+00_ALK1e+00_O21e+00.mat' ;
-par.fnameload = '/DFS-L/DATA/primeau/meganrs/fork-OCIM-BGC/Code_withCellModel/output/optPCO_Cell_prescribe_C2P_N23in_NPPp2c_CellModel_optGBC2024_CTL_He_PCO_DOC1_DOP0.mat' ;
+% par.fnameload = '/DFS-L/DATA/primeau/meganrs/fork-OCIM-BGC/Code_withCellModel/output/optPCO_Cell_prescribe_C2P_N23in_NPPp2c_CellModel_optGBC2024_CTL_He_PCO_DOC1_DOP0.mat' ;
 
 par.dopscale = 0.0 ;
 par.dipscale = 1.0 ;
@@ -85,8 +87,8 @@ par.opt_R_Si  = on ;
 par.opt_rR    = on ; 
 % --- C:P function parameters -----
 % phosphate-dependent function parameters
-par.opt_cc    = off ;
-par.opt_dd    = off ; 
+par.opt_cc    = on ;
+par.opt_dd    = on ; 
 % temperature-dependent function parameters
 par.opt_ccT   = off ; 
 par.opt_ddT   = off ;
@@ -111,9 +113,9 @@ par.opt_bt    = on  ;
 par.opt_aa    = on  ;
 par.opt_bb    = on  ;
 %
-par.SetUp_options.smoothP = 0;
-par.SetUp_options.smoothT = 0;
-par.SetUp_options.NPPp2c_type = 2; % Function to convert satellite Cnpp to Pnpp
+par.SetUp_options.smoothP = on ; % 1 = on; 0 = off
+par.SetUp_options.smoothT = on ;
+par.SetUp_options.NPPp2c_type = 1; % Function to convert satellite Cnpp to Pnpp
 % 0 = GM15 original; 1 = constant (1/117); 2 = Cellmodel GBC2024 optim; 3 = reoptNature fxhatload cc&dd parameters
 %-------------load data and set up parameters---------------------
 SetUp_v2 ;                      
@@ -176,7 +178,7 @@ par.fxhat = fxhat ;
 par.fxpar = fxpar ;
 
 % -------------------update initial guesses --------------
-if isfile(par.fnameload)
+if isfield(par,'fnameload') & isfile(par.fnameload)
     load(par.fnameload)
 end 
 
