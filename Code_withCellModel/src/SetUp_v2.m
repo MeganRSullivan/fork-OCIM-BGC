@@ -273,6 +273,7 @@ dicraw = dic_initial;           % ---> Transient run 통해 다시 re-optimized 
 % get rid of mediterranean observations 
 %     Med is disconnected from the ocean in the model because of course model resolution 
         % 기존 weilei 모델에서는 arc med자료 뺐음. 이번에는 다 포함시켜 보자.
+fprintf('Removing mediterranean and arctic data from docraw, dicraw, alkraw ...\n')
 docraw(imed)  = nan ;
 alkraw(imed)  = nan ; 
 dicraw(imed)  = nan ;
@@ -295,6 +296,8 @@ dicraw(iarc)  = nan ;
 %
 %   idea: we may want to remove outliers from minimization, but then keep all data 
 %   when assessing how well the model fits the obs
+
+fprintf('Removing outliers from docraw, po4raw, dicraw, alkraw, o2raw ...\n')
 docraw = rmOutliers(docraw, M3d) ;
 po4raw = rmOutliers(po4raw, M3d) ;
 dicraw = rmOutliers(dicraw, M3d) ;
