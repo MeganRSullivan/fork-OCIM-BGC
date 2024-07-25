@@ -20,6 +20,8 @@ VerNum = '';		% optional version number for testing
 par.C2Pfunctiontype = 'T';
 % 'P' -> PO4 function ; 'C' -> Cell model; 'T' -> Temperature function; 'R' -> constant value (Redfield)
 % 
+par.nppVer = 1; % 1 = CbPM; 2 = CAFE; (Nowicki)
+%
 GridVer  = 91  ;
 operator = 'A' ;
 % GridVer: choose from 90 and 91; Ver 90 is for a Transport

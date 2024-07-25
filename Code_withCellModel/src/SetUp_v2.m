@@ -185,9 +185,11 @@ fprintf('\n')
     grd = output.grid;
     TR  = output.TR/spa;
     %
-    fname = 'biopump_model_output_Nowicki.nc';
-    NPP = ncread(fname,'NPP'); % 1 = CbPM; 2 = CAFE
-    npp = NPP(:,:,1); % mmol/m2/yr 
+    fname_npp = 'biopump_model_output_Nowicki.nc';
+    fprintf('load NPP from %s ... \nNPP version = %d     (CbPM (1) or CAFE (2)) \n',fname_npp,par.nppVer)
+    NPP = ncread(fname_npp,'NPP'); % 1 = CbPM; 2 = CAFE
+    npp = NPP(:,:,par.nppVer); % mmol/m2/yr 
+    %
     load M3d91x180x24.mat MSKS
     % WOA13 data
       load Sobs_91x180x24.mat Sobs    % Salinity obs for PME and Fsea2air
