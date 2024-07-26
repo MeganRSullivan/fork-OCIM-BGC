@@ -1,4 +1,4 @@
-clc; clear all; close all 
+%clc; clear all; close all 
 global iter 
 iter = 0 ;
 on   = true  ;
@@ -9,7 +9,8 @@ format short
 addpath('../src_reoptNature/')
 
 % --- name to identify the run output ---
-VerName = 'reoptNature_GM15_npp2_CAFE_'; 		% optional version name. leave as an empty character array
+VerName = 'reoptNature_GM15_'; 	
+%VerName = 'reoptNature_GM15_npp2_CAFE_'; 		% optional version name. leave as an empty character array
 					% or add a name ending with an underscore
 VerNum = '';		% optional version number for testing
 
@@ -17,7 +18,7 @@ VerNum = '';		% optional version number for testing
 par.C2Pfunctiontype = 'P';
 % 'P' -> PO4 function ; 'C' -> Cell model; 'T' -> Temperature function; 'R' -> constant value (Redfield)
 %
-par.nppVer = 2; % 1 = CbPM; 2 = CAFE; (Nowicki)
+par.nppVer = 1; % 1 = CbPM; 2 = CAFE; (Nowicki)
 %
 GridVer  = 91  ;
 operator = 'A' ;
