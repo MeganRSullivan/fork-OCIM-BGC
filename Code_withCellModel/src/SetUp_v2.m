@@ -65,21 +65,25 @@ if par.Cmodel == on
       par.C2P_Tzmodel = off;
       par.Cellmodel = off;
       par.C2P_constant = off;
+      par.C2P_loadprescribed = off;
     case 'C'
       par.Cellmodel = on;
       par.C2P_PO4model = off;
       par.C2P_Tzmodel = off;
       par.C2P_constant = off;
+      par.C2P_loadprescribed = off;
     case 'T'
       par.C2P_Tzmodel = on;
       par.C2P_PO4model = off;
       par.Cellmodel = off;
       par.C2P_constant = off;
+      par.C2P_loadprescribed = off;
     case 'R'
       par.C2P_constant = on;
       par.C2P_Tzmodel = off;
       par.C2P_PO4model = off;
       par.Cellmodel = off;
+      par.C2P_loadprescribed = off;
     case 'L'
       par.C2P_constant = off;
       par.C2P_Tzmodel = off;
