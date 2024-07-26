@@ -273,8 +273,20 @@ if(Gtest);
     save(fxhat, 'xhat')
 elseif (par.optim)
     % save SetUp fields
-    fprintf('saving initial SetUp par structure to file: %s \n',par.fxpar)
-    save(par.fxpar, 'par', '-v7.3')
+    fprintf('Saving initial SetUp par structure to file: %s ...\n', par.fxpar);
+    if exist(par.fxpar, 'file')
+        reply = input(sprintf('WARNING: File ( %s ) already exists. \nDo you want to overwrite this file? Y/N: ', par.fxpar), 's');
+        if strcmpi(reply, 'Y')
+            fprintf('Overwriting File... \n');
+            save(par.fxpar, 'par', '-v7.3');
+        else
+            fprintf('Execution stopped by User.\n');
+            fprintf('--------------------------\n\n');
+            return;
+        end
+    else
+        save(par.fxpar, 'par', '-v7.3');
+    end
     % optimize parameters
     [xsol,fval,exitflag] = fminunc(myfun,x0,options);
     fprintf('objective function tolerance = %5.1e \n',objfuntolerance);
