@@ -46,6 +46,10 @@ function par = SetPar(par)
 		elseif isfile(par.fxhat)    
             % load from run with same name (e.g. continuing optimization after timeout)
 			load(par.fxhat)
+            if isfield(xhat,'allparams')
+                % load all parameters, including those that were not optimized
+			    xhat = xhat.allparams;  
+            end
         else
             fprintf('Warning (SetPar.m): LoadOpt File not found. Using default parameter values instead. \n')
 		end
