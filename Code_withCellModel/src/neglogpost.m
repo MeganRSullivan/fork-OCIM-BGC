@@ -73,6 +73,8 @@ function [f, fx, fxx, data, xhat] = neglogpost(x, par)
     eip = DIP(iwet(idip)) - par.po4raw(iwet(idip)) ;
     eop = DOP(iwet(idop)) - par.dopraw(iwet(idop)) ;
     f  = f + 0.5*(eip.'*Wip*eip) + 0.5*(eop.'*Wop*eop); 
+    f_components.DIP = 0.5*(eip.'*Wip*eip);
+    f_components.DOP = 0.5*(eop.'*Wop*eop); 
     
     %%%%%%%%%%%%%%%%%%   End Solve P    %%%%%%%%%%%%%%%%%%%%
 
@@ -124,6 +126,7 @@ function [f, fx, fxx, data, xhat] = neglogpost(x, par)
         % SiO error
         es = DSi(iwet(isil)) - par.sio4raw(iwet(isil)) ;
         f  = f + 0.5*(es.'*Ws*es) ;
+        f_components.Si = 0.5*(es.'*Ws*es) ;
     end
     %%%%%%%%%%%%%%%%%%   End Solve Si    %%%%%%%%%%%%%%%%%%%%
     
@@ -181,6 +184,9 @@ function [f, fx, fxx, data, xhat] = neglogpost(x, par)
         elk = ALK(iwet(ialk)) - par.alkraw(iwet(ialk)) ;
         f   = f + 0.5*(eic.'*Wic*eic) + 0.5*(eoc.'*Woc*eoc) + ...
               0.5*(elk.'*Wlk*elk);
+        f_components.DIC = 0.5*(eic.'*Wic*eic);
+        f_components.DOC = 0.5*(eoc.'*Woc*eoc);
+        f_components.ALK = 0.5*(elk.'*Wlk*elk);
     end
     %%%%%%%%%%%%%%%%%%   End Solve C    %%%%%%%%%%%%%%%%%%%
       
@@ -199,6 +205,8 @@ function [f, fx, fxx, data, xhat] = neglogpost(x, par)
         data.O2 = O2 ;
         eo = O2(iwet(io2)) - par.o2raw(iwet(io2)) ;
         f  = f + 0.5*(eo.'*Wo*eo)   ;
+        f_components.O2 = 0.5*(eo.'*Wo*eo)   ;
+        fprintf('current objective function value for fit to O2 is %3.3e \n\n',f_components.O2) 
     end
     %%%%%%%%%%%%%%%%%%   End Solve O    %%%%%%%%%%%%%%%%%%%%
     % --------- Save all parameter values inlcuding fixed values in xhat ------
@@ -259,10 +267,24 @@ function [f, fx, fxx, data, xhat] = neglogpost(x, par)
 	end
 	xhat.allparams = allparams;
     %--------------------------------------------------------
-    fprintf('current objective function value is %3.3e \n\n',f) 
+    fprintf('current objective function value is: %3.3e \n\n',f) 
+    try
+        fprintf('current objective function value for fit to DIP is %3.3e \n',f_components.DIP) 
+        fprintf('current objective function value for fit to DOP is %3.3e \n',f_components.DOP) 
+        if (par.Cmodel == on)
+            fprintf('current objective function value for fit to DIC is %3.3e \n',f_components.DIC) 
+            fprintf('current objective function value for fit to DOC is %3.3e \n',f_components.DOC) 
+            fprintf('current objective function value for fit to ALK is %3.3e \n',f_components.ALK) 
+        end
+        if (par.Omodel == on)
+            fprintf('current objective function value for fit to O2  is %3.3e \n\n',f_components.O2) 
+        end
+    catch
+    end
 
     % Save f in xhat every iteration
     xhat.f = f ;    
+    xhat.f_components = f_components;
 
     % Save output every (1) iterations during optimization
     if mod(iter, 1) == 0
