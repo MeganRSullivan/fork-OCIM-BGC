@@ -3,12 +3,12 @@
 % directly should suppress the command line prompts from appearing in the
 % output file
 clear all; close all; clc;
-diary logs/reoptNature_no_oxygen_GM15_npp1.out
+diary logs/reoptNature_no_DIC_GM15_npp1.out
 %fprintf('----------------------------------- \n\n')
 dbstop if error
 date_start = datetime('now');
 fprintf('Start Date: %s\n',date_start)
-fprintf('reptimize the P and C model from the Nature paper (Wang et al., 2023) with oxygen model turned off. Goal: to see if the cc and dd parameters give more variable C:P pattern when model is optimized without oxygen. except for O2, SetUp is same as reoptNature_GM15_npp1_CbPM. using CbPM NPP and GM15 p2c for satellite NPP conversion. load inital guess on CO and params from hojongs previous run. Temp and DIP_obs are smoothed. \n\n')
+fprintf('reptimize the P and C model from the Nature paper (Wang et al., 2023), but exclude DIC from objective function (set dicscale =0). Goal: to see if the cc and dd parameters give more variable C:P pattern when model is optimized without DIC. except for dicscale, SetUp is same as reoptNature_GM15_npp1_CbPM. using CbPM NPP and GM15 p2c for satellite NPP conversion. load inital guess on CO and params from hojongs previous run. Temp and DIP_obs are smoothed. \n\n')
 %fprintf('continuing the optimization: optimizing the PCO model using the previously optimized cellular growth C:P model from my 2024 GBC paper for both the C2P of uptake, and the p2c conversion for satellite NPP. To see if using consistent C:P in NPP and uptake gives better objective function value. using the SetUp input fields from the Nature paper (Wang et al., 2023) using initial guess on CO and params from from hojongs previous run. no smoothing for Temp obs or DIP_obs \n\n')
 run driver_reoptNature.m
 date_end = datetime('now'); fprintf('Complete Date: %s\n',date_end)

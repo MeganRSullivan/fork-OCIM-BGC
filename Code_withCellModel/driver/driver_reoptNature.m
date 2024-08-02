@@ -9,7 +9,7 @@ format short
 addpath('../src_reoptNature/')
 
 % --- name to identify the run output ---
-VerName = 'reoptNature_no_oxygen_GM15_npp1_'; 	
+VerName = 'reoptNature_no_DIC_GM15_npp1_'; 	
 %VerName = 'reoptNature_GM15_npp2_CAFE_'; 		% optional version name. leave as an empty character array
 					% or add a name ending with an underscore
 VerNum = '';		% optional version number for testing
@@ -35,7 +35,7 @@ Gtest = off ;
 Htest = off ;
 par.optim   = on ; 
 par.Cmodel  = on ; 
-par.Omodel  = off ; 
+par.Omodel  = on ; 
 par.Simodel = off ;
 par.LoadOpt = on ; % if load optimial par. 
 % to load parameter values from a run with a different name.
@@ -47,7 +47,7 @@ par.Cisotope = off ;
 
 par.dopscale = 0.0 ;
 par.dipscale = 1.0 ;
-par.dicscale = 1.0 ;
+par.dicscale = 0.0 ;
 par.docscale = 1.0 ; % factor to weigh DOC in the objective function
 par.alkscale = 1.0 ;
 par.o2scale  = 1.0 ;
