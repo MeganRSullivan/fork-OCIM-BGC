@@ -335,7 +335,7 @@ par.po4raw   = po4raw        ;
 par.DOCobs   = docraw        ;
 par.dicraw   = dicraw        ; 
 par.alkraw   = alkraw*permil ;
-par.dopraw   = dopraw - 0.05 ;    %less refractory DOP  ---> 0.05를 왜 빼주지..?
+par.dopraw   = dopraw - 0.05 ;    % To remove refractory component of DOP, subtract the mean deep ocean (>1000m) [DOP] (=0.05 μM, in DOPv2021 database (Liang et al., 2022) and at ALOHA (Foreman et al., 2019); following method of Liang et al., 2023)) 
 par.docraw   = docraw ;
 par.PARobs = PARobs;
 %-------------------- prepare virtual flux -------------------
