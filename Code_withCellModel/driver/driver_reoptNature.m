@@ -9,7 +9,7 @@ format short
 addpath('../src_reoptNature/')
 
 % --- name to identify the run output ---
-VerName = 'reoptNature_no_DIC_GM15_npp1_'; 	
+VerName = 'reoptNature_with_dop_GM15_npp1_'; 	
 %VerName = 'reoptNature_GM15_npp2_CAFE_'; 		% optional version name. leave as an empty character array
 					% or add a name ending with an underscore
 VerNum = '';		% optional version number for testing
@@ -45,9 +45,9 @@ par.fnameload = '/DFS-L/DATA/primeau/hojons1/Nature2023_BGC_reoptimized/src_Natu
 par.dynamicP = off ; % if on, cell model uses modeled DIP. if off, cell model uses WOA observed DIP field.
 par.Cisotope = off ;
 
-par.dopscale = 0.0 ;
+par.dopscale = 1.0 ;
 par.dipscale = 1.0 ;
-par.dicscale = 0.0 ;
+par.dicscale = 1.0 ;
 par.docscale = 1.0 ; % factor to weigh DOC in the objective function
 par.alkscale = 1.0 ;
 par.o2scale  = 1.0 ;
