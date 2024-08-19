@@ -176,6 +176,15 @@ fprintf('\n')
 
 if par.Omodel == on
     fprintf('-------- O model is on -------- \n')
+    if isfield(par,'fo2cload')
+      fprintf('Load O2C pattern from file: %s \n',par.fo2cload)
+      load(par.fo2cload,'O2C')
+      par.O2Cprescribed = O2C;
+      fprintf('Resetting opt_O2C_T opt_rO2C to off ; cannot optimize O2C function parameters when using prescribed O2C \n')
+      % tunable parameters;
+      par.opt_O2C_T = off ;
+      par.opt_rO2C  = off ;
+    end
 end 
 if par.Simodel == on
     fprintf('-------- Si model is on -------- \n')

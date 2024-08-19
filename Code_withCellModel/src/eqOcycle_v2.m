@@ -126,7 +126,11 @@ function [F, FD, Ox, Oxx, O2tstep] = O_eqn(O2, par)
     o2sat = vout.o2sat ;
 
     % rate of o2 production
-    O2C = O2C_T*Tz + rO2C ; 
+    if isfield(par,'O2Cprescribed')
+      O2C = par.O2Cprescribed(iwet);
+    else
+      O2C = O2C_T*Tz + rO2C ; 
+    end
     C2P = par.C2P         ;
     G   = par.G           ;
     Cnpp = par.Cnpp(iwet); %satellite npp (Carbon)
