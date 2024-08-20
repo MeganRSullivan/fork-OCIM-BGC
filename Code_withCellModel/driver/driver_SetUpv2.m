@@ -13,7 +13,7 @@ format short
 addpath('../src/')
 
 %VerName = 'optPConly_GM15_N23in_npp1_NPPp2c_const_'; 		% optional version name. leave as an empty character array
-VerName = 'optPCO_Cell_with_dop_prescribeCellO2C_npp2_NPPp2cGM15_'; 		% optional version name. leave as an empty character array
+VerName = 'optPCO_Cell_with_dop_N23in_npp2_NPPp2cGM15_'; 		% optional version name. leave as an empty character array
 					% or add a name ending with an underscore
 VerNum = '';		% optional version number for testing
 
@@ -26,7 +26,7 @@ par.C2Pfunctiontype = 'C';
 %par.fc2pload = '../../DATA/BGC_24layer/C2Puptake_CellModel_opt_GBC2024.mat';
 
 % add file name to load O2C pattern from
-par.fo2cload = '../../DATA/BGC_24layer/CellO2C_91x180x24.mat';
+%par.fo2cload = '../../DATA/BGC_24layer/CellO2C_91x180x24.mat';
 % 
 par.nppVer = 2; % 1 = CbPM; 2 = CAFE; (Nowicki)
 %
