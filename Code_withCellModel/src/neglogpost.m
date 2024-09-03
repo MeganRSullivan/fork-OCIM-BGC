@@ -27,6 +27,7 @@ function [f, fx, fxx, data, xhat] = neglogpost(x, par)
             fprintf('%d ... ',ibad)
             fprintf('\n')
             fprintf('Exiting neglogpost... \n')
+            iter = iter + 1  ; % increment iteration counter
 			return
 		end
     end
