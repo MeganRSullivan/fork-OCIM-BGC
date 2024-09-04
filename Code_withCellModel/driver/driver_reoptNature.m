@@ -9,7 +9,7 @@ format short
 addpath('../src_reoptNature/')
 
 % --- name to identify the run output ---
-VerName = 'reoptNature_with_dop_GM15_npp1_gamma10pct_'; 	
+VerName = 'reoptNature_with_dop_GM15_npp1_gamma1pct_'; 	
 %VerName = 'reoptNature_GM15_npp2_CAFE_'; 		% optional version name. leave as an empty character array
 					% or add a name ending with an underscore
 VerNum = '';		% optional version number for testing
