@@ -70,7 +70,8 @@ function [f, fx, fxx, data, xhat] = neglogpost(x, par)
     par.DIP  = DIP(iwet) ;
     data.DIP = DIP ; data.POP  = POP  ;
     data.DOP = DOP ; data.DOPl = DOPl ;
-    % DIP error
+    % DIP & DOP error
+    DOP = DOP + DOPl; % sum of semilabile and labile DOP ;
     eip = DIP(iwet(idip)) - par.po4raw(iwet(idip)) ;
     eop = DOP(iwet(idop)) - par.dopraw(iwet(idop)) ;
     f  = f + 0.5*(eip.'*Wip*eip) + 0.5*(eop.'*Wop*eop); 
@@ -178,7 +179,7 @@ function [f, fx, fxx, data, xhat] = neglogpost(x, par)
             fprintf('error in %s (line %d): %s \n', ME.stack(1).name,ME.stack(1).line,ME.message);
             fprintf('Unable to store C2P in data struct. \n');
         end
-        % DIC error
+        % DOC error
         DOC = DOC + DOCr + DOCl; % sum of labile and refractory DOC ;
         eic = DIC(iwet(idic)) - par.dicraw(iwet(idic)) ;
         eoc = DOC(iwet(idoc)) - par.docraw(iwet(idoc)) ;
@@ -299,9 +300,8 @@ function [f, fx, fxx, data, xhat] = neglogpost(x, par)
         fx = zeros(length(x), 1)   ;
         npx = par.npx  ;
         if npx > 0                          % If optimizing P model parameters
-            ipx  = Px(0*nwet+1:nwet, :);    % extract DIP gradient (Each column is the gradient with respect to a specific parameter)
-            opx  = Px(2*nwet+1:end ,:) ;    % extract DOP gradient
-            % to add POP to objective function, add extract POP gradient from Px and add to fx 
+            ipx  = Px(0*nwet+1:nwet, :);                            % extract DIP gradient (Each column is the gradient with respect to a specific parameter)
+            opx  = Px(2*nwet+1:3*nwet,:) + Px(3*nwet+1:4*nwet,:);    % extract DOP gradient (add labile and semilabile DOP)
             % ---------------------------------
             for ji = 1 : npx
                 fx(ji) = eip.'*Wip*ipx(idip,ji) + eop.'*Wop*opx(idop,ji);
@@ -416,7 +416,7 @@ function [f, fx, fxx, data, xhat] = neglogpost(x, par)
         fxx = sparse(npx, npx)  ;
         if par.npx > 0
             ipxx = Pxx(0*nwet+1 : 1*nwet, :) ;
-            opxx = Pxx(2*nwet+1 : 3*nwet, :) ;
+            opxx = Pxx(2*nwet+1 : 3*nwet, :) + Pxx(3*nwet+1 : 4*nwet, :);
         end
         if par.Cmodel == on & (par.npx + par.ncx + par.nbx > 0)
 			icxx = Cxx(0*nwet+1 : 1*nwet, :) ;
