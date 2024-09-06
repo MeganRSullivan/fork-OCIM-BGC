@@ -298,9 +298,10 @@ function [f, fx, fxx, data, xhat] = neglogpost(x, par)
     if (nargout > 1)
         fx = zeros(length(x), 1)   ;
         npx = par.npx  ;
-        if npx > 0
-            ipx  = Px(0*nwet+1:nwet,:) ;
-            opx  = Px(2*nwet+1:end ,:) ;
+        if npx > 0                          % If optimizing P model parameters
+            ipx  = Px(0*nwet+1:nwet, :);    % extract DIP gradient (Each column is the gradient with respect to a specific parameter)
+            opx  = Px(2*nwet+1:end ,:) ;    % extract DOP gradient
+            % to add POP to objective function, add extract POP gradient from Px and add to fx 
             % ---------------------------------
             for ji = 1 : npx
                 fx(ji) = eip.'*Wip*ipx(idip,ji) + eop.'*Wop*opx(idop,ji);
