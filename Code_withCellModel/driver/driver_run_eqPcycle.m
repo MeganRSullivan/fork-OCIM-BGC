@@ -12,7 +12,9 @@ format short
 %addpath('../src/')
 addpath('../src_reoptNature/')
 
-VerName = 'solve_reoptNature_GM15_with_dop_npp1_addDOPl_gamma1pct_'; 		% optional version name. leave as an empty character array
+% test1_eqPcycle_with_DOPl_gamma1pct_from_reoptNature_with_dop_GM15_npp1
+
+VerName = 'test1_eqPcycle_with_DOPl_gamma1pct_from_reoptNature_with_dop_GM15_npp1_'; 		% optional version name. leave as an empty character array
 					% or add a name ending with an underscore
 VerNum = '';		% optional version number for testing
 
@@ -38,9 +40,9 @@ par.nl = 2; % number of layers in the model euphotic zone (doesn't change)
 
 Gtest = off ; 
 Htest = off ;
-par.optim   = on ; 
-par.Cmodel  = on ; 
-par.Omodel  = on ; 
+par.optim   = off ; 
+par.Cmodel  = off ; 
+par.Omodel  = off ; 
 par.Simodel = off ;
 par.Cisotope  = off  ;
 par.dynamicP = off ; % if on, cell model uses modeled DIP. if off, cell model uses WOA observed DIP field.
@@ -123,7 +125,7 @@ if ~isdir(output_dir)
 end
 
 VER = strcat(output_dir,VerName,TRdivVer);
-catDOC = sprintf('_DOC%0.2g_DOP%0.2g',par.docscale,par.dopscale); % used to add scale factors to file names
+catDOC = ''; % sprintf('_DOC%0.2g_DOP%0.2g',par.docscale,par.dopscale); % used to add scale factors to file names
 % Create output file names based on which model(s) is(are) optimized
 %if Gtest == on
 %    fname = strcat(VER,'_GHtest');
@@ -213,57 +215,7 @@ options = optimoptions(@fminunc                  , ...
                        'PrecondBandWidth',Inf)   ;
 %
 nip = length(x0);
-if(Gtest);
-    fprintf('derivative test \n')
-	GHtest.fx_cstep = NaN([nip,1]);
-	GHtest.fxx_cstep = NaN(nip);
-	GHtest.pindx = par.pindx;
-    % load(fGHtest); % continuing GHtest after out of memory crash
-    % display par.pindx
-    fprintf('pindx = ')
-    par.pindx 
-    dx = sqrt(-1)*eps.^3*eye(nip);
-    for ii = 1 : nip 
-        x  = real(x0)+dx(:,ii);
-        iter = 11; %bypasses the ResetPar in neglogpost
-        if Htest == on
-            [f,fx,fxx] = neglogpost(x, par) ;
-            GHtest.fx_cstep(ii) = imag(f)/eps.^3     ;
-			GHtest.fxx_cstep(:,ii) = imag(fx)/eps.^3 ;
-			%save complex step gradient and hessian
-			fprintf('saving GHtest to file: %s \n',fGHtest)
-			save(fGHtest,'GHtest')
-
-            % print relative errors
-            diff = (real(fx(ii)) - imag(f)/eps.^3)/(imag(f)/eps.^3);
-            fprintf('gradient relative error (%i): % .3e  \n',ii,diff);
-            diffx = (real(fxx(:,ii))-imag(fx)/eps.^3)./(imag(fx)/eps.^3+eps.^3);
-            for jj = 1:length(fx)
-                fprintf('% .3e  ', diffx(jj));
-            end
-        else
-            [f,fx] = neglogpost(x, par) ;
-            diff = (real(fx(ii)) - imag(f)/eps.^3)/(imag(f)/eps.^3) ;
-            fprintf('%i % .3e  \n',ii,diff);
-            fprintf('\n');
-        end 
-        fprintf('\n');                                                    
-    end
-    format shortE
-	real(fx)
-	real(full(fxx))
-    %keyboard  
-    % run model once more to save gradient and hessian in xhat without the complex step
-    fprintf('Run without compex step & Save f,fx,fxx to xhat \n')
-    [f,fx,fxx,data,xhat] = neglogpost(x0,par);
-    xhat.pindx = par.pindx;
-    xhat.f   = f   ;
-    xhat.fx  = fx  ;
-    xhat.fxx = fxx ;
-    % save results 
-    fprintf('saving optimized parameters to file: %s \n',fxhat)
-    save(fxhat, 'xhat')
-elseif (par.optim)
+if (par.optim)
     % save SetUp fields
     fprintf('saving initial SetUp par structure to file: %s \n',par.fxpar)
     if exist(par.fxpar, 'file')
@@ -300,7 +252,7 @@ else
     [f,fx,fxx,data] = neglogpost(xsol,par);
     fprintf('----neglogpost complete----\n')
     %% note: skipping save for testing
-    %fprintf('saving model solution to file: %s \n',par.fname)
-    %save(par.fname, 'data')
+    fprintf('saving model solution to file: %s \n',par.fname)
+    save(par.fname, 'data')
 end
 fprintf('-------------- end! ---------------\n');
