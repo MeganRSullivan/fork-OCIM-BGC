@@ -173,11 +173,13 @@ par.fxpar = fxpar ;
 
 % -------------------update initial guesses --------------
 if isfile(par.fnameload)
+    fprintf('loading initial guess on C and O from file: %s \n',par.fnameload)
     load(par.fnameload)
 end 
 
 % -------------------update initial guesses --------------
 if isfile(par.fname)
+    fprintf('loading initial guess on C and O from file: %s \n',par.fname)
     load(par.fname)
 end 
 
@@ -252,7 +254,20 @@ else
     [f,fx,fxx,data] = neglogpost(xsol,par);
     fprintf('----neglogpost complete----\n')
     %% note: skipping save for testing
-    fprintf('saving model solution to file: %s \n',par.fname)
-    save(par.fname, 'data')
+    if exist(par.fname, 'file')
+        reply = input(sprintf('WARNING: File ( %s ) already exists. \nDo you want to overwrite this file? Y/N: ', par.fname), 's');
+        if strcmpi(reply, 'Y')
+            fprintf('Overwriting File... \n');
+            fprintf('saving model solution to file: %s \n',par.fname)
+            save(par.fname, 'data')
+        else
+            fprintf('Execution stopped by User.\n');
+            fprintf('--------------------------\n\n');
+            return;
+        end
+    else
+        fprintf('saving model solution to file: %s \n',par.fname)
+        save(par.fname, 'data')
+    end
 end
 fprintf('-------------- end! ---------------\n');
