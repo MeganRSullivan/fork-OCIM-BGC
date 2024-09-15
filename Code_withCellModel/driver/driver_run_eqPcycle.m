@@ -56,7 +56,7 @@ par.fxhatload = '../output/reoptNature_with_dop_GM15_npp1_CTL_He_PCO_DIP1e+00_DI
 %par.fnameload = '/DFS-L/DATA/primeau/hojons1/Nature2023_BGC_reoptimized/src_Nature_parameter_Megan/MSK91/CTL_He_PCO_Gamma0_kl12h_O5_POC2DIC_GM15_Nowicki_npp1_aveTeu_diffSig_O2C_uniEta_DICrmAnthro_2L_Pnormal_DIP1e+00_DIC1e+00_DOC1e+00_ALK1e+00_O21e+00.mat' ;
 par.fnameload = '../output/reoptNature_with_dop_GM15_npp1_CTL_He_PCO_DIP1e+00_DIC1e+00_DOC1e+00_ALK1e+00_O21e+00.mat'
 
-par.dopscale = 0.0 ;
+par.dopscale = 1.0 ;
 par.dipscale = 1.0 ;
 par.dicscale = 1.0 ;
 par.docscale = 1.0 ; % factor to weigh DOC in the objective function
@@ -251,7 +251,7 @@ if (par.optim)
 else
     clear data
     x = x0;
-    iter = 11;
+    iter = 0;
     %[f,fx,fxx,data] = neglogpost(xsol,par);
     %fprintf('----neglogpost complete----\n')
     fprintf('\ncurrent time is:      %s\n',datetime('now')) ;
@@ -313,20 +313,20 @@ else
     %%%%%%%%%%%%%%%%%%   End Solve P    %%%%%%%%%%%%%%%%%%%%
 
     %% note: skipping save for testing
-    if exist(par.fname, 'file')
-        reply = input(sprintf('WARNING: File ( %s ) already exists. \nDo you want to overwrite this file? Y/N: ', par.fname), 's');
-        if strcmpi(reply, 'Y')
-            fprintf('Overwriting File... \n');
-            fprintf('saving model solution to file: %s \n',par.fname)
-            save(par.fname, 'data')
-        else
-            fprintf('Execution stopped by User.\n');
-            fprintf('--------------------------\n\n');
-            return;
-        end
-    else
+    % if exist(par.fname, 'file')
+    %     reply = input(sprintf('WARNING: File ( %s ) already exists. \nDo you want to overwrite this file? Y/N: ', par.fname), 's');
+    %     if strcmpi(reply, 'Y')
+    %         fprintf('Overwriting File... \n');
+    %         fprintf('saving model solution to file: %s \n',par.fname)
+    %         save(par.fname, 'data')
+    %     else
+    %         fprintf('Execution stopped by User.\n');
+    %         fprintf('--------------------------\n\n');
+    %         return;
+    %     end
+    % else
         fprintf('saving model solution to file: %s \n',par.fname)
         save(par.fname, 'data')
-    end
+    % end
 end
 fprintf('-------------- end! ---------------\n');
