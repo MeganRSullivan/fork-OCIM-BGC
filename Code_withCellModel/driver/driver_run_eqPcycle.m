@@ -249,10 +249,69 @@ if (par.optim)
     save(fxhat, 'xhat')
     save(par.fname, 'data')
 else
-    xsol = x0;
+    clear data
+    x = x0;
     iter = 11;
-    [f,fx,fxx,data] = neglogpost(xsol,par);
-    fprintf('----neglogpost complete----\n')
+    %[f,fx,fxx,data] = neglogpost(xsol,par);
+    %fprintf('----neglogpost complete----\n')
+    fprintf('\ncurrent time is:      %s\n',datetime('now')) ;
+    fprintf('current iteration is: %d \n',iter) ;
+
+    % print and save current parameter values to
+    % a file that is used to reset parameters ;
+    PrintPar(x, par) ;    
+    % increment iteration counter
+    iter = iter + 1  ;
+
+    nx   = length(x) ; % number of parameters
+    dVt  = par.dVt   ;
+    M3d  = par.M3d   ;
+    iwet = par.iwet  ;
+    nwet = par.nwet  ;
+    %
+    f    = 0 ;
+    %%%%%%%%%%%%%%%%%%   Solve P    %%%%%%%%%%%%%%%%%%%%%%%%
+    idip = find(par.po4raw(iwet) > 0.05) ;
+    Wp   = d0(dVt(iwet(idip))/sum(dVt(iwet(idip)))) ;
+    mu   = sum(Wp*par.po4raw(iwet(idip)))/sum(diag(Wp)) ;
+    var  = sum(Wp*(par.po4raw(iwet(idip))-mu).^2)/sum(diag(Wp)) ;
+    Wip  = par.dipscale*Wp/var ;
+
+    idop = find(par.dopraw(iwet) > 0.0) ;
+    Wp   = d0(dVt(iwet(idop))/sum(dVt(iwet(idop)))) ;
+    mu   = sum(Wp*par.dopraw(iwet(idop)))/sum(diag(Wp)) ;
+    var  = sum(Wp*(par.dopraw(iwet(idop))-mu).^2)/sum(diag(Wp)) ;
+    Wop  = par.dopscale*Wp/var ;
+    %
+    %tic 
+    [par, P, Px, Pxx] = eqPcycle(x, par) ;
+    DIP  = M3d+nan  ;  DIP(iwet)  = P(1+0*nwet:1*nwet) ;
+    POP  = M3d+nan  ;  POP(iwet)  = P(1+1*nwet:2*nwet) ;
+    DOP  = M3d+nan  ;  DOP(iwet)  = P(1+2*nwet:3*nwet) ;
+    DOPl = M3d+nan  ;  DOPl(iwet) = P(1+3*nwet:4*nwet) ;
+    %toc 
+    par.Px   = Px  ;
+    par.Pxx  = Pxx ;
+    par.DIP  = DIP(iwet) ;
+    data.DIP = DIP ; data.POP  = POP  ;
+    data.DOP = DOP ; data.DOPl = DOPl ;
+    % DIP & DOP error
+    DOP = DOP + DOPl; % sum of semilabile and labile DOP ;
+    eip = DIP(iwet(idip)) - par.po4raw(iwet(idip)) ;
+    eop = DOP(iwet(idop)) - par.dopraw(iwet(idop)) ;
+    f  = f + 0.5*(eip.'*Wip*eip) + 0.5*(eop.'*Wop*eop); 
+    f_components.DIP = 0.5*(eip.'*Wip*eip);
+    f_components.DOP = 0.5*(eop.'*Wop*eop); 
+
+    data.f = f;
+    data.f_components = f_components;
+
+    fprintf('current objective function value is: %3.3e \n\n',f) 
+    fprintf('current objective function value for fit to DIP is %3.3e \n',f_components.DIP) 
+    fprintf('current objective function value for fit to DOP is %3.3e \n',f_components.DOP) 
+    
+    %%%%%%%%%%%%%%%%%%   End Solve P    %%%%%%%%%%%%%%%%%%%%
+
     %% note: skipping save for testing
     if exist(par.fname, 'file')
         reply = input(sprintf('WARNING: File ( %s ) already exists. \nDo you want to overwrite this file? Y/N: ', par.fname), 's');
