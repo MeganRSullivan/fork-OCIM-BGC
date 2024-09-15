@@ -287,6 +287,7 @@ function [f, fx, fxx, data, xhat] = neglogpost(x, par)
     % Save f in xhat every iteration
     xhat.f = f ;    
     xhat.f_components = f_components;
+    data.f_components = f_components;
 
     % Save output every (1) iterations during optimization
     if mod(iter, 1) == 0
