@@ -9,7 +9,7 @@ function par = SetPar(par)
     par.kappa_g  = 1/(1e6*spa)  ; % geological restoring time [1/s] ;
     par.kappa_l  = 1/(12*sph )  ; % labile DOM remi time [1/s]     ;
     par.taup     = 30*spd       ; % (s) pic dissolution time-scale ;
-    par.gamma    = 0.4 ; % 2/5 ;
+    par.gamma    = 0.1 ; % 2/5 ;
     par.kappa_p  = 1/par.taup ;
     % PIC dissolution constant 0.38 day^-1 based on first-order
     % reaction kinetics according to Sarmiento
