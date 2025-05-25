@@ -307,31 +307,100 @@ else
     f_components.DIP = 0.5*(eip.'*Wip*eip);
     f_components.DOP = 0.5*(eop.'*Wop*eop); 
 
-    data.f = f;
+    
+    
+    %%%%%%%%%%%%%%%%%%   End Solve P    %%%%%%%%%%%%%%%%%%%%
+
+    %%%%%%%%%%%%%%%%%%     Solve C   %%%%%%%%%%%%%%%%%%%%%%%%
+    if (par.Cmodel == on)
+        idic = find(par.dicraw(iwet) > 0) ;
+        Wic  = d0(dVt(iwet(idic))/sum(dVt(iwet(idic)))) ;
+        mu   = sum(Wic*par.dicraw(iwet(idic)))/sum(diag(Wic)) ;
+        var  = sum(Wic*(par.dicraw(iwet(idic))-mu).^2)/sum(diag(Wic));
+        Wic  = par.dicscale*Wic/var  ;
+        
+        ialk = find(par.alkraw(iwet) > 0) ;
+        Wlk  = d0(dVt(iwet(ialk))/sum(dVt(iwet(ialk)))) ;
+        mu   = sum(Wlk*par.alkraw(iwet(ialk)))/sum(diag(Wlk)) ;
+        var  = sum(Wlk*(par.alkraw(iwet(ialk))-mu).^2)/sum(diag(Wlk));
+        Wlk  = par.alkscale*Wlk/var  ;
+        
+        idoc = find(par.docraw(iwet) > 0) ;
+        Woc  = d0(dVt(iwet(idoc))/sum(dVt(iwet(idoc)))) ;
+        mu   = sum(Woc*par.docraw(iwet(idoc)))/sum(diag(Woc)) ;
+        var  = sum(Woc*(par.docraw(iwet(idoc))-mu).^2)/sum(diag(Woc));
+        Woc  = par.docscale*Woc/var ;
+        %tic 
+        [par, C, Cx, Cxx] = eqCcycle_v2(x, par) ;
+        DIC  = M3d+nan ;  DIC(iwet)  = C(0*nwet+1:1*nwet) ;
+        POC  = M3d+nan ;  POC(iwet)  = C(1*nwet+1:2*nwet) ;
+        DOC  = M3d+nan ;  DOC(iwet)  = C(2*nwet+1:3*nwet) ;
+        PIC  = M3d+nan ;  PIC(iwet)  = C(3*nwet+1:4*nwet) ;
+        ALK  = M3d+nan ;  ALK(iwet)  = C(4*nwet+1:5*nwet) ;
+        DOCl = M3d+nan ;  DOCl(iwet) = C(5*nwet+1:6*nwet) ;
+        DOCr = M3d+nan ;  DOCr(iwet) = C(6*nwet+1:7*nwet) ;
+       % toc
+
+        par.DIC = DIC(iwet) ;
+        par.POC = POC(iwet) ;
+        par.DOC = DOC(iwet) ;
+        par.DOCl = DOCl(iwet) ;
+        par.DOCr = DOCr(iwet) ;
+        % DIC = DIC + par.dicant  ;
+        par.Cx    = Cx   ;  par.Cxx   = Cxx ;
+        data.DIC  = DIC  ;  data.POC  = POC ;
+        data.DOC  = DOC  ;  data.PIC  = PIC ;
+        data.ALK  = ALK  ;  data.DOCr = DOCr ;
+        data.DOCl = DOCl ;
+        try
+            data.C2P = M3d+nan ; data.C2P(iwet) = par.C2P; 
+        catch ME
+            fprintf('error in %s (line %d): %s \n', ME.stack(1).name,ME.stack(1).line,ME.message);
+            fprintf('Unable to store C2P in data struct. \n');
+        end
+        % DOC error
+        DOC = DOC + DOCr + DOCl; % sum of labile and refractory DOC ;
+        eic = DIC(iwet(idic)) - par.dicraw(iwet(idic)) ;
+        eoc = DOC(iwet(idoc)) - par.docraw(iwet(idoc)) ;
+        elk = ALK(iwet(ialk)) - par.alkraw(iwet(ialk)) ;
+        f   = f + 0.5*(eic.'*Wic*eic) + 0.5*(eoc.'*Woc*eoc) + ...
+              0.5*(elk.'*Wlk*elk);
+              
+        f_components.DIC = 0.5*(eic.'*Wic*eic);
+        f_components.DOC = 0.5*(eoc.'*Woc*eoc);
+        f_components.ALK = 0.5*(elk.'*Wlk*elk);
+    end
+    %%%%%%%%%%%%%%%%%%   End Solve C    %%%%%%%%%%%%%%%%%%%
+
+% Print and save objective function subcomponent values
+data.f = f;
     data.f_components = f_components;
 
     fprintf('current objective function value is: %3.3e \n\n',f) 
     fprintf('current objective function value for fit to DIP is %3.3e \n',f_components.DIP) 
     fprintf('current objective function value for fit to DOP is %3.3e \n',f_components.DOP) 
-    
-    %%%%%%%%%%%%%%%%%%   End Solve P    %%%%%%%%%%%%%%%%%%%%
+    if (par.Cmodel == on)
+        fprintf('current objective function value for fit to DIC is %3.3e \n',f_components.DIC) 
+        fprintf('current objective function value for fit to DOC is %3.3e \n',f_components.DOC) 
+        fprintf('current objective function value for fit to ALK is %3.3e \n',f_components.ALK) 
+    end
 
 
     %% note: skipping save for testing
-    % if exist(par.fname, 'file')
-    %     reply = input(sprintf('WARNING: File ( %s ) already exists. \nDo you want to overwrite this file? Y/N: ', par.fname), 's');
-    %     if strcmpi(reply, 'Y')
-    %         fprintf('Overwriting File... \n');
-    %         fprintf('saving model solution to file: %s \n',par.fname)
-    %         save(par.fname, 'data')
-    %     else
-    %         fprintf('Execution stopped by User.\n');
-    %         fprintf('--------------------------\n\n');
-    %         return;
-    %     end
-    % else
-        fprintf('saving model solution to file: %s \n',par.fname)
-        save(par.fname, 'data')
-    % end
+    if exist(par.fname, 'file')
+        reply = input(sprintf('WARNING: File ( %s ) already exists. \nDo you want to overwrite this file? Y/N: ', par.fname), 's');
+        if strcmpi(reply, 'Y')
+            fprintf('Overwriting File... \n');
+            fprintf('saving model solution to file: %s \n',par.fname)
+            save(par.fname, 'data')
+        else
+            fprintf('Execution stopped by User.\n');
+            fprintf('--------------------------\n\n');
+            return;
+        end
+    else
+       fprintf('saving model solution to file: %s \n',par.fname)
+       save(par.fname, 'data')
+    end
 end
 fprintf('-------------- end! ---------------\n');
