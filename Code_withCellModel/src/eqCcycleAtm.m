@@ -143,6 +143,13 @@ function [F,FD,par,Cx,Cxx] = C_eqn(X, par)
     nwet  = par.nwet  ;
     dVt   = par.dVt   ;
     I     = par.I     ;
+    Natm    = 1.773e20  ; %  molar volume of atmosphere
+	vw    = dVt(iwet)./Natm ;
+
+    M3dsurf = M3d ;             % make surface mask (ocn grid cells in contact with atm) 
+	M3dsurf(:,:,2:end) = 0 ;
+	Msurf = M3dsurf(iwet);
+	isrf = find(M3dsurf(iwet)) ;
     
     DIC  = X(0*nwet+1:1*nwet) ; 
     POC  = X(1*nwet+1:2*nwet) ;
@@ -151,6 +158,20 @@ function [F,FD,par,Cx,Cxx] = C_eqn(X, par)
     ALK  = X(4*nwet+1:5*nwet) ;
     DOCl = X(5*nwet+1:6*nwet) ;
     DOCr = X(6*nwet+1:7*nwet) ;
+    % add atmospheric box for pCO2atm
+    pco2atm = X(7*nwet+1); % atmospheric pCO2 in uatm
+    %C  = [DIC; POC; DOC; PIC; ALK; pco2atm] ;
+	%TotalC = (DIC+DOC+POC+PIC).*dVt(iwet).*1e-3 + pco2atm*Natm*1e-6; %[molC]
+
+    
+    % ALKbar  = par.ALKbar  ;
+    % sDICbar = par.sDICbar ;
+    % sALKbar = par.sALKbar ;
+    ALKbar  = par.ALKbar  ;
+	sDICbar = sum(DIC(iwet(isrf)).*dVt(iwet(isrf)))./sum(dVt(iwet(isrf))) ;
+    sALKbar = sum(ALK(iwet(isrf)).*dVt(iwet(isrf)))./sum(dVt(iwet(isrf))) ;
+	par.sDICbar = sDICbar ;
+	par.sALKbar = sALKbar ;
 
     PO4 = par.po4obs(iwet) ;    % phosphate obs
     Tz = par.Tz;                % temperature obs scaled between zero and 1.
@@ -159,6 +180,7 @@ function [F,FD,par,Cx,Cxx] = C_eqn(X, par)
     kappa_l = par.kappa_l;
     kPIC  = par.kPIC     ;
     gamma = par.gamma    ;
+    kappa_g = par.kappa_g ;
     % parameters need to be optimized
     alpha = par.alpha    ;
     beta  = par.beta     ;
@@ -219,17 +241,17 @@ function [F,FD,par,Cx,Cxx] = C_eqn(X, par)
     par.ALK  = ALK  ;
     % Air-Sea gas exchange
     vout  = Fsea2air(par, 'CO2');
-    G_dic = vout.G_dic ;
-    G_alk = vout.G_alk ;
-    JgDIC = vout.JgDIC ;
+    JgDIC = vout.JgDIC ;   % DIC flux mmol/m3/s
+    G_dic = vout.G_dic ;   % flux_dic gradient; size:[nwet x nwet]     
+    G_alk = vout.G_alk ;   % flux_alk gradient; size:[nwet x nwet]
+    G_atm = vout.G_atm ;   % flux_co2atm gradient; size:[nwet x 1]
     clear vout 
     % biological DIC uptake operator
     G = uptake_C(par)  ; par.G = G ;
-    
-    kappa_g = par.kappa_g ;
-    ALKbar  = par.ALKbar  ;
-    sDICbar = par.sDICbar ;
-    sALKbar = par.sALKbar ;
+
+    % difference from prescribed total carbon
+	TC_restoring = kappa_g*(((DIC+POC+DOC+DOCl+DOCr+PIC)'*dVt(iwet)*1e-3 + pco2atm*Natm*1e-6) - par.totalCarbon); %[molC/s]
+
 
     UM = par.UM ; 
     DM = par.DM ;
@@ -255,7 +277,9 @@ function [F,FD,par,Cx,Cxx] = C_eqn(X, par)
 
     eq7 = (TRdiv+kappa_r)*DOCr - (I-eta)*(kC*DOC) ;  % DOCr 
 
-    F   = [eq1; eq2; eq3; eq4; eq5; eq6; eq7];
+    eqa = JgDIC'*vw*1000 + TC_restoring/Natm*1e6; % umol/mol/s  %adding restoring term
+
+    F   = [eq1; eq2; eq3; eq4; eq5; eq6; eq7; eqa] ;
 
     if nargout > 1
         % construct the LHS matrix for the offline model
@@ -268,6 +292,7 @@ function [F,FD,par,Cx,Cxx] = C_eqn(X, par)
         Jc{5,1} = 0*I ;
         Jc{6,1} = 0*I ;
         Jc{7,1} = 0*I ;
+        Jc{8,1} = (G_dic*vw*1000)' +(kappa_g*1e3*vw)'; % for restoring term TC constraint; row vector % +(kappa_g*1e6/Natm*1e-3*I*dVt(iwet))'
         % column 2 dFdPOC
         Jc{1,2} = -kappa_p*I ;
         Jc{2,2} = PFDc + kappa_p*I ;
@@ -276,6 +301,7 @@ function [F,FD,par,Cx,Cxx] = C_eqn(X, par)
         Jc{5,2} = N2C*kappa_p*I ;
         Jc{6,2} = 0*I ;
         Jc{7,2} = 0*I ;
+        Jc{8,2} = 0*Msurf' +(kappa_g*1e6/Natm*1e-3*I*dVt(iwet))';		% for restoring term TC constraint; row vector
         % column 3 dFdDOC
         Jc{1,3} = -eta*kC ;
         Jc{2,3} = 0*I ;
@@ -284,6 +310,7 @@ function [F,FD,par,Cx,Cxx] = C_eqn(X, par)
         Jc{5,3} = eta*N2C*kC ;
         Jc{6,3} = 0*I ;
         Jc{7,3} = -(I-eta)*kC ;
+        Jc{8,3} = 0*Msurf' +(kappa_g*1e6/Natm*1e-3*I*dVt(iwet))'; % row vector
         % column 4 dFdPIC
         Jc{1,4} = -kPIC*I ;
         Jc{2,4} = 0*I ;
@@ -292,6 +319,7 @@ function [F,FD,par,Cx,Cxx] = C_eqn(X, par)
         Jc{5,4} = -2*kPIC*I ;
         Jc{6,4} = 0*I ;
         Jc{7,4} = 0*I ;
+        Jc{8,4} = 0*Msurf' +(kappa_g*1e6/Natm*1e-3*I*dVt(iwet))';
         % column 5 dFdALK
         Jc{1,5} = -G_alk ;
         Jc{2,5} = 0*I ;
@@ -300,6 +328,7 @@ function [F,FD,par,Cx,Cxx] = C_eqn(X, par)
         Jc{5,5} = TRdiv + kappa_g*I ;
         Jc{6,5} = 0*I ;
         Jc{7,5} = 0*I ;
+        Jc{8,5} = (G_alk*vw*1000)' ; % for restoring term TC constraint;
         % column 6 dFdDOCl
         Jc{1,6} = -kappa_l*I ;
         Jc{2,6} = 0*I ;
@@ -308,6 +337,7 @@ function [F,FD,par,Cx,Cxx] = C_eqn(X, par)
         Jc{5,6} = N2C*kappa_l*I ;
         Jc{6,6} = TRdiv + kappa_l*I ;
         Jc{7,6} = 0*I ;
+        Jc{8,6} = 0*Msurf' +(kappa_g*1e6/Natm*1e-3*I*dVt(iwet))'; % row vector
         % column 7 dFdDOCr
         Jc{1,7} = -kappa_r ;
         Jc{2,7} = 0*I ;
@@ -316,6 +346,16 @@ function [F,FD,par,Cx,Cxx] = C_eqn(X, par)
         Jc{5,7} = N2C*kappa_r ;
         Jc{6,7} = 0*I ;
         Jc{7,7} = TRdiv + kappa_r ;
+        Jc{8,7} = 0*Msurf' +(kappa_g*1e6/Natm*1e-3*I*dVt(iwet))'; % row vector
+        % column 8 dFdATM  % column vectors
+		Jc{1,8} = -G_atm ; % unit conversion?
+		Jc{2,8} = 0*Msurf ;
+		Jc{3,8} = 0*Msurf ;
+		Jc{4,8} = 0*Msurf ;
+		Jc{5,8} = 0*Msurf ;
+        Jc{6,8} = 0*Msurf ;
+        Jc{7,8} = 0*Msurf ;
+		Jc{8,8} = G_atm'*vw*1000 + kappa_g;  % size [1x1];
         fprintf('factorize Jacobian matrix ...\n')
         tic 
 	FD = mfactor(cell2mat(Jc)) ; 
