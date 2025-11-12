@@ -182,22 +182,33 @@ par.fxhat = fxhat ;
 par.fxpar = fxpar ;
 
 % -------------------update initial guesses --------------
-if isfile(par.fnameload)
-    fprintf('loading initial guess on C and O from file: %s \n',par.fnameload)
-    load(par.fnameload)
-end 
-
-% -------------------update initial guesses --------------
 if isfile(par.fname)
     fprintf('loading initial guess on C and O from file: %s \n',par.fname)
     load(par.fname)
 end 
 
+% -------------------update initial guesses --------------
+if isfile(par.fnameload)
+    fprintf('loading initial guess on C and O from file: %s \n',par.fnameload)
+    load(par.fnameload)
+end 
+
 %---------------- inital guesses on C and O ---------------
 if par.Cmodel == on 
+    pco2atm = par.pco2_air(1) ;  % uatm
     GC  = [data.DIC(iwet); data.POC(iwet); data.DOC(iwet); data.PIC(iwet); ...
-           data.ALK(iwet); data.DOC(iwet); data.DOC(iwet);];
-    GC  = real(GC) + 1e-6*randn(7*nwet,1) ;
+           data.ALK(iwet); data.DOCl(iwet); data.DOCr(iwet); pco2atm];
+    GC  = real(GC) + 1e-6*randn(7*nwet+1,1) ;
+
+    % Set total carbon in System (Atm + Ocn)
+	%par.TotalCset = 6.2816e+18 ; %[mol C]
+	Natm    = 1.773e20  ; %  molar volume of atmosphere
+	par.Natm = Natm ;
+	TC_ocean = ((data.DIC(iwet)+data.DOC(iwet)+data.POC(iwet)+data.PIC(iwet)+data.DOCl(iwet)+data.DOCr(iwet))'*par.dVt(iwet)).*1e-3; %[molC]
+	par.totalCarbon = (data.DIC(iwet)+data.DOC(iwet)+data.POC(iwet)+data.PIC(iwet)+data.DOCl(iwet)+data.DOCr(iwet))'*par.dVt(iwet).*1e-3 + pco2atm*Natm*1e-6  ;  %[molC]
+	fprintf('Initial pco2atm = %4.2f ppm ; totalC_ocean = %6.5e mol C; totalCarbon = %6.5e mol C \n', pco2atm, TC_ocean, par.totalCarbon) ;
+	clear TC_ocean
+
 end 
 if par.Omodel == on 
     GO  = real(data.O2(iwet)) + 1e-9*randn(par.nwet,1);
@@ -337,7 +348,7 @@ else
         var  = sum(Woc*(par.docraw(iwet(idoc))-mu).^2)/sum(diag(Woc));
         Woc  = par.docscale*Woc/var ;
         %tic 
-        [par, C, Cx, Cxx] = eqCcycle_v2(x, par) ;
+        [par, C, Cx, Cxx] = eqCcycleAtm(x, par) ;
         DIC  = M3d+nan ;  DIC(iwet)  = C(0*nwet+1:1*nwet) ;
         POC  = M3d+nan ;  POC(iwet)  = C(1*nwet+1:2*nwet) ;
         DOC  = M3d+nan ;  DOC(iwet)  = C(2*nwet+1:3*nwet) ;
@@ -345,6 +356,7 @@ else
         ALK  = M3d+nan ;  ALK(iwet)  = C(4*nwet+1:5*nwet) ;
         DOCl = M3d+nan ;  DOCl(iwet) = C(5*nwet+1:6*nwet) ;
         DOCr = M3d+nan ;  DOCr(iwet) = C(6*nwet+1:7*nwet) ;
+        pco2atm = C(7*nwet+1);
        % toc
 
         par.DIC = DIC(iwet) ;
@@ -352,12 +364,13 @@ else
         par.DOC = DOC(iwet) ;
         par.DOCl = DOCl(iwet) ;
         par.DOCr = DOCr(iwet) ;
+        par.pco2atm = pco2atm ;
         % DIC = DIC + par.dicant  ;
         par.Cx    = Cx   ;  par.Cxx   = Cxx ;
         data.DIC  = DIC  ;  data.POC  = POC ;
         data.DOC  = DOC  ;  data.PIC  = PIC ;
         data.ALK  = ALK  ;  data.DOCr = DOCr ;
-        data.DOCl = DOCl ;
+        data.DOCl = DOCl ;  data.pco2atm = pco2atm ;
         try
             data.C2P = M3d+nan ; data.C2P(iwet) = par.C2P; 
         catch ME
@@ -375,6 +388,22 @@ else
         f_components.DIC = 0.5*(eic.'*Wic*eic);
         f_components.DOC = 0.5*(eoc.'*Woc*eoc);
         f_components.ALK = 0.5*(elk.'*Wlk*elk);
+
+        % % print carbon system info
+	    % fprintf('Atm CO2 concentration: %3.2f ppm \n', pco2atm);
+		% %DIC
+		% DICtmp = model.DIC.*par.dVt.*1e-3;  %units = mol C
+    	% tDIC = sum(DICtmp(iwet),'all');
+    	% fprintf('Integrated total DIC in ocean = %10.4e mol C   (%6.3e Pg C) \n',tDIC,tDIC*12*1e-15)
+        % % all forms of carbon
+        % DICtmp = (model.DIC+model.DOC + model.POC +model.PIC).*par.dVt.*1e-3;
+        % tC_ocn = sum(DICtmp(iwet),'all');
+		% tC_all = tC_ocn + model.pco2atm*par.Natm*1e-6;
+		% fprintf('Atm pCO2 from prescribed TC - TC_ocean: %3.2f ppm \n',(par.totalCarbon - tC_ocn)/par.Natm*1e6) ;
+		% fprintf('Integrated total C in ocean =   %10.4e mol C   (%6.3e Pg C) \n',tC_ocn,tC_ocn*12*1e-15);
+		% fprintf('total C in System (Atm+Ocn) =   %10.4e mol C   (%6.3e Pg C) \n\n',tC_all,tC_all*12*1e-15);
+		% model.totalC = tC_all;
+		% model.totalC_ocean = tC_ocn;
     end
     %%%%%%%%%%%%%%%%%%   End Solve C    %%%%%%%%%%%%%%%%%%%
 
