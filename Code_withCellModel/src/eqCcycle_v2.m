@@ -260,7 +260,7 @@ function [F,FD,par,Cx,Cxx] = C_eqn(X, par)
     if nargout > 1
         % construct the LHS matrix for the offline model
         % disp('Preparing LHS and RHS matrix:')
-        % colum 1 dFdDIC
+        % column 1 dFdDIC
         Jc{1,1} = TRdiv - G_dic ; 
         Jc{2,1} = 0*I ;
         Jc{3,1} = 0*I ;
@@ -268,7 +268,7 @@ function [F,FD,par,Cx,Cxx] = C_eqn(X, par)
         Jc{5,1} = 0*I ;
         Jc{6,1} = 0*I ;
         Jc{7,1} = 0*I ;
-        % colum 2 dFdPOC
+        % column 2 dFdPOC
         Jc{1,2} = -kappa_p*I ;
         Jc{2,2} = PFDc + kappa_p*I ;
         Jc{3,2} = 0*I ;
@@ -276,7 +276,7 @@ function [F,FD,par,Cx,Cxx] = C_eqn(X, par)
         Jc{5,2} = N2C*kappa_p*I ;
         Jc{6,2} = 0*I ;
         Jc{7,2} = 0*I ;
-        % colum 3 dFdDOC
+        % column 3 dFdDOC
         Jc{1,3} = -eta*kC ;
         Jc{2,3} = 0*I ;
         Jc{3,3} = TRdiv + kC ;
@@ -284,7 +284,7 @@ function [F,FD,par,Cx,Cxx] = C_eqn(X, par)
         Jc{5,3} = eta*N2C*kC ;
         Jc{6,3} = 0*I ;
         Jc{7,3} = -(I-eta)*kC ;
-        % colum 4 dFdPIC
+        % column 4 dFdPIC
         Jc{1,4} = -kPIC*I ;
         Jc{2,4} = 0*I ;
         Jc{3,4} = 0*I ;
