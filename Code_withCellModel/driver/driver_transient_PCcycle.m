@@ -18,8 +18,8 @@ on   = true  ; off  = false ;
 format short
 
 % --- addpath to model code -----
-%addpath('../src/')
-addpath('../src_reoptNature/')
+addpath('../src/')
+%addpath('../src_reoptNature/')
 
 % test1_eqPcycle_with_DOPl_gamma1pct_from_reoptNature_with_dop_GM15_npp1
 
@@ -65,6 +65,9 @@ par.fxhatload = '../output/PNAS2025/reoptNature_with_dop_GM15_npp1_CTL_He_PCO_DI
 % to use different model output for initial CO guess. 
 %par.fnameload = '/DFS-L/DATA/primeau/hojons1/Nature2023_BGC_reoptimized/src_Nature_parameter_Megan/MSK91/CTL_He_PCO_Gamma0_kl12h_O5_POC2DIC_GM15_Nowicki_npp1_aveTeu_diffSig_O2C_uniEta_DICrmAnthro_2L_Pnormal_DIP1e+00_DIC1e+00_DOC1e+00_ALK1e+00_O21e+00.mat' ;
 par.fnameload = '../output/PNAS2025/reoptNature_with_dop_GM15_npp1_CTL_He_PCO_DIP1e+00_DIC1e+00_DOC1e+00_ALK1e+00_O21e+00.mat'
+
+% to load presaved input data fields in par
+% par.fparload = '../output/PNAS2025/reoptNature_with_dop_GM15_npp1_CTL_He_PCO_DIP1e+00_DIC1e+00_DOC1e+00_ALK1e+00_O21e+00_par.mat'
 
 par.dopscale = 1.0 ;
 par.dipscale = 1.0 ;
@@ -127,7 +130,7 @@ SetUp ;
 % save results 
 % ATTENTION: Change this directory to where you want to
 % save your output files
-output_dir = sprintf('../output/'); 
+output_dir = sprintf('../output/PNAS2025_transient/'); 
 
 if ~isdir(output_dir)
     command = strcat('mkdir', " ", output_dir) ;
@@ -184,21 +187,23 @@ par.fxpar = fxpar ;
 % -------------------update initial guesses --------------
 if isfile(par.fname)
     fprintf('loading initial guess on C and O from file: %s \n',par.fname)
-    load(par.fname)
+    load(par.fname,'data')
 end 
 
 % -------------------update initial guesses --------------
 if isfile(par.fnameload)
     fprintf('loading initial guess on C and O from file: %s \n',par.fnameload)
-    load(par.fnameload)
+    load(par.fnameload,'data')
 end 
+
+% to timestep P, need to define initial guess as optimal model solution
 
 %---------------- inital guesses on C and O ---------------
 if par.Cmodel == on 
     pco2atm = par.pco2_air(1) ;  % uatm
     GC  = [data.DIC(iwet); data.POC(iwet); data.DOC(iwet); data.PIC(iwet); ...
            data.ALK(iwet); data.DOCl(iwet); data.DOCr(iwet); pco2atm];
-    GC  = real(GC) + 1e-6*randn(7*nwet+1,1) ;
+    % GC  = real(GC) + 1e-6*randn(7*nwet+1,1) ;
 
     % Set total carbon in System (Atm + Ocn)
 	%par.TotalCset = 6.2816e+18 ; %[mol C]
@@ -211,65 +216,173 @@ if par.Cmodel == on
 
 end 
 if par.Omodel == on 
-    GO  = real(data.O2(iwet)) + 1e-9*randn(par.nwet,1);
+    GO  = real(data.O2(iwet)) ; % + 1e-9*randn(par.nwet,1);
 end 
 
+% save initial solution in par?
+par.DIP = data.DIP(iwet); 
+par.POP = data.POP(iwet);
+par.DOP = data.DOP(iwet);
+par.DOPl= data.DOPl(iwet);
+par.DIC = data.DIC(iwet);
+par.POC = data.POC(iwet);
+par.DOC = data.DOC(iwet);
+par.PIC = data.PIC(iwet);
+par.ALK = data.ALK(iwet);
+par.DOCl= data.DOCl(iwet);
+par.DOCr= data.DOCr(iwet);
+par.O2  = data.O2(iwet);
+
+%% 
 %--------------------- prepare parameters ------------------
 % load optimal parameters from a file or set them to default values 
 par = SetPar(par)  ;
 % pack parameters into an array, assign them corresponding indices.
 par = PackPar(par) ;
 
-%-------------------set up fminunc -------------------------
 x0    = par.p0 ;
-myfun = @(x) neglogpost(x, par);
-objfuntolerance = 5e-11; %5e-12;
-options = optimoptions(@fminunc                  , ...
-                       'Algorithm','trust-region', ...
-                       'GradObj','on'            , ...
-                       'Hessian','on'            , ...
-                       'Display','iter'          , ...
-                       'MaxFunEvals',2000        , ...
-                       'MaxIter',2000            , ...
-                       'TolX', objfuntolerance   , ...     % 기존은 -7. decreasing
-                       'TolFun',objfuntolerance  , ...     % 기존은 -7. decreasing
-                       'DerivativeCheck','off'   , ...
-                       'FinDiffType','central'   , ...
-                       'PrecondBandWidth',Inf)   ;
-%
 nip = length(x0);
-if (par.optim)
-    % save SetUp fields
-    fprintf('saving initial SetUp par structure to file: %s \n',par.fxpar)
-    if exist(par.fxpar, 'file')
-        reply = input(sprintf('WARNING: File ( %s ) already exists. \nDo you want to overwrite this file? Y/N: ', par.fxpar), 's');
-        if strcmpi(reply, 'Y')
-            fprintf('Overwriting File... \n');
-            save(par.fxpar, 'par', '-v7.3');
-        else
-            fprintf('Execution stopped by User.\n');
-            fprintf('--------------------------\n\n');
-            return;
-        end
-    else
-        save(par.fxpar, 'par', '-v7.3');
+%-------------------set up timestepper -------------------------
+spa = par.spa;
+
+
+% Default schedule
+%                      1 hr    1 day   1 month  1 year   4 years   
+dt_size =        spa./[365*24  365     12       1        0.25   ];  % step sizes in seconds
+nsteps =              [ 50      50      50       20       30     ]; % number of steps for each size
+par.dt_schedule = dt_size ;
+par.nsteps_schedule = nsteps ;
+
+total_nsteps = sum(nsteps);
+total_time_yr = sum(dt_size .* nsteps) / spa;
+fprintf('Time-step Schedule: %d total steps over %.2f years\n', total_nsteps, total_time_yr);
+
+
+% allocate output  
+% diagnostics to save at every timestep: 
+% pco2atm, volume integrated DIC, integrated PNPP, CNPP
+Tout = zeros(1,total_nstep);
+pco2atmout = zeros(1,total_nstep);
+
+t0 = 0; 
+  t = t0;
+  Tout(1) = t;
+  fprintf('Before time stepping method (Steady-state solutions in pre-industrial era)...\n');
+  fprintf('...Time: %4.2f, AtmCO2: %4.2f uatm,  avgDIC: %7.6g mmol/m3\n', ...
+    t,par.pco2atm,sum(par.DIC.*par.dVt(iwet))/sum(par.dVt(iwet))); % mean(par.DIC)
+
+    totalDIC = sum(par.DIC.*par.dVt(iwet).*1e-3); % units = mol C
+    totalCO2atm = par.pco2atm * par.Natm * 1e-6; % mol C
+    fprintf('...Ocn: avgDIC = %7.4f mmol/m3 \n',sum(par.DIC.*par.dVt(iwet))/sum(par.dVt(iwet)));
+    fprintf('...Ocn: Integrated total DIC = %10.3e Pg C \n',totalDIC*12*1e-15)
+    fprintf('...Atm: Integrated total CO2 = %10.3e Pg C \n',totalCO2atm*12*1e-15);
+
+
+
+% 3) Time integration with scheduled stepping
+% -----------------------
+% trapezoid + euler forward
+    % dX/dt + F(X,t) =0 where F(X,t) = J*X + f(X,t)
+    % 
+    % X(n+1) - X(n) + (dt/2)*J*(X(n+1)+X(n)) + dt*fn = 0
+    % ==> A*X(n+1) = B*X(n) - dt*f(n)
+    % X(n+1) = A\(B*X(n)-dt*f(n))
+
+% t = t0;
+% global_step = 1; % global step counter for saving
+% for dt_idx = 1:length(dt_size)
+%     dt = dt_size(dt_idx);
+%     n_substeps = nsteps(dt_idx);
+
+%     for ii = 1:n_substeps 
+%         global_step = global_step + 1; 
+%     end
+% end
+
+
+%% Time step model
+% Set up
+% solve/load steady state solution 
+% check the data and par for steady-state drive the time stepping method 
+    Xin.P = [par.DIP;par.POP;par.DOP;par.DOPl];
+    Xin.C = [par.DIC;par.POC;par.DOC;par.PIC;par.ALK;par.DOCl;par.DOCr; par.pco2atm];
+    Xin.O2 = [par.O2];
+% set up iteration counter 
+t = t0;
+global_step = 1; % global step counter for saving
+for dt_idx = 1:length(dt_size)
+    dt = dt_size(dt_idx);
+    n_substeps = nsteps(dt_idx);
+    % load previous iteration solution
+    Xin.P = [par.DIP;par.POP;par.DOP;par.DOPl];
+    Xin.C = [par.DIC;par.POC;par.DOC;par.PIC;par.ALK;par.DOCl;par.DOCr; par.pco2atm];
+    Xin.O2 = [par.O2];
+
+    % set up time stepper for P and C (only need to factor trapezoid matrix once for each step size dt)
+    % run Peqn
+    [F_P,J_P,par] = Peqn(Xin.P, par); 
+    % Evaluate RHS and Jacobian at current state (X, t)
+    % Build trapezoidal matrices
+    I_P  = speye(numel(Xin.P(:)));
+    A_P  = I_P + 0.5*dt*J_P;
+    B_P  = I_P - 0.5*dt*J_P;
+    A_Pfactored = mfactor(A_P); 
+
+    % run CeqnAtm
+    [F_C,J_C,par] = CeqnAtm(Xin.C, par);
+    % Evaluate RHS and Jacobian at current state (X, t)
+    % Build trapezoidal matrices
+    I_C  = speye(numel(Xin.C(:)));
+    A_C  = I_C + 0.5*dt*J_C;
+    B_C  = I_C - 0.5*dt*J_C;
+    A_Cfactored = mfactor(A_C);
+
+    % start iterating through n_substeps for each dt
+    for ii = 1:n_substeps 
+        global_step = global_step + 1; 
+
+        % load previous iteration solution
+        Xin.P = [par.DIP;par.POP;par.DOP;par.DOPl];
+        Xin.C = [par.DIC;par.POC;par.DOC;par.PIC;par.ALK;par.DOCl;par.DOCr; par.pco2atm];
+        Xin.O2 = [par.O2];
+
+        % run Peqn
+        [F_P,J_P,par] = Peqn(Xin.P, par); 
+        % Right-hand side
+        rhs_P = B_P*Xin.P - dt*F_P;
+        Xout.P  = mfactor(A_Pfactored, rhs_P);        
+
+        % update par with Peqn solution
+        par.DIP = Xout.P(1:nwet);
+        par.POP = Xout.P(1*nwet+1:2*nwet);
+        par.DOP = Xout.P(2*nwet+1:3*nwet);
+        par.DOPl= Xout.P(3*nwet+1:4*nwet);
+
+        % run CeqnAtm
+        [F_C,J_C,par] = CeqnAtm(Xin.C, par);
+        % Right-hand side
+        rhs_C = B_C*Xin.C - dt*F_C;
+        Xout.C  = mfactor(A_Cfactored, rhs_C);
+        % update par with CeqnAtm solution
+        par.DIC    = Xout.C(1:nwet);
+        par.POC    = Xout.C(1*nwet+1:2*nwet);
+        par.DOC    = Xout.C(2*nwet+1:3*nwet);
+        par.PIC    = Xout.C(3*nwet+1:4*nwet);
+        par.ALK    = Xout.C(4*nwet+1:5*nwet);
+        par.DOCl   = Xout.C(5*nwet+1:6*nwet);
+        par.DOCr   = Xout.C(6*nwet+1:7*nwet);
+        par.pco2atm= Xout.C(7*nwet+1);  
+
+        % save output at each time step
+
+
     end
-    % optimize parameters
-    [xsol,fval,exitflag] = fminunc(myfun,x0,options);
-    fprintf('objective function tolerance = %5.1e \n',objfuntolerance);
-    fprintf('----fminunc complete----\n')
-    [f,fx,fxx,data,xhat] = neglogpost(xsol,par);
-    fprintf('----neglogpost solved for final parameter values----\n')
-    xhat.pindx = par.pindx;
-    xhat.f   = f   ;
-    xhat.fx  = fx  ;
-    xhat.fxx = fxx ;
-    % save results 
-    fprintf('saving optimized parameters to file: %s \n',fxhat)
-    fprintf('saving model solution to file: %s \n',par.fname)
-    save(fxhat, 'xhat')
-    save(par.fname, 'data')
-else
+end
+
+
+
+% %%%%%%%%%%%%%%%%%%   steady state BGC model   %%%%%%%%%%%%%%%%%%%%%%%%
+function [f,J] =PCeqns(x0, par)
     clear data
     x = x0;
     iter = 0;
@@ -313,7 +426,11 @@ else
     %toc 
     par.Px   = Px  ;
     par.Pxx  = Pxx ;
-    par.DIP  = DIP(iwet) ;
+    par.DIP  = DIP(iwet) ; %need to update DIP field for C cycle run
+    par.POP  = POP(iwet) ;
+    par.DOP  = DOP(iwet) ;
+    par.DOPl = DOPl(iwet) ;
+
     data.DIP = DIP ; data.POP  = POP  ;
     data.DOP = DOP ; data.DOPl = DOPl ;
     % DIP & DOP error
@@ -407,8 +524,8 @@ else
     end
     %%%%%%%%%%%%%%%%%%   End Solve C    %%%%%%%%%%%%%%%%%%%
 
-% Print and save objective function subcomponent values
-data.f = f;
+    % Print and save objective function subcomponent values
+    data.f = f;
     data.f_components = f_components;
 
     fprintf('current objective function value is: %3.3e \n\n',f) 
@@ -437,5 +554,7 @@ data.f = f;
        fprintf('saving model solution to file: %s \n',par.fname)
        save(par.fname, 'data')
     end
-end
+
+
 fprintf('-------------- end! ---------------\n');
+end
