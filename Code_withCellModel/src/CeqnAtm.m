@@ -221,10 +221,12 @@ function [F,FD,par] = CeqnAtm(X, par)
         Jc{6,8} = 0*Msurf ;
         Jc{7,8} = 0*Msurf ;
 		Jc{8,8} = G_atm'*vw*1000 + kappa_g;  % size [1x1];
-        fprintf('factorize Jacobian matrix ...\n')
-        tic 
-	FD = mfactor(cell2mat(Jc)) ; 
-	toc
+    % fprintf('factorize Jacobian matrix ...\n')
+    % tic 
+	% FD = mfactor(cell2mat(Jc)) ; 
+	% toc
+    FD = cell2mat(Jc); 
+
     end 
     
 end

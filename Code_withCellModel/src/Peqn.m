@@ -109,6 +109,8 @@ function [F,FD,par] = Peqn(X, par)
            sparse(nwet,1)  ; ...
            sparse(nwet,1)] ;
 
-    FD = mfactor(cell2mat(Fp)) ; 
+    %FD = mfactor(cell2mat(Fp)) ; 
+    % Jacobian matrix
+    FD = cell2mat(Fp);
 
 end

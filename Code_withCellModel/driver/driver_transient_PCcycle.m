@@ -222,6 +222,19 @@ if par.Omodel == on
     GO  = real(data.O2(iwet)) ; % + 1e-9*randn(par.nwet,1);
 end 
 
+
+%% 
+%--------------------- prepare parameters ------------------
+% load optimal parameters from a file or set them to default values 
+par = SetPar(par)  ;
+% pack parameters into an array, assign them corresponding indices.
+par = PackPar(par) ;
+
+x0    = par.p0 ;
+nip = length(x0);
+
+
+% -------- initialize model state with optimal solution -----------
 % save initial solution in par?
 par.DIP = data.DIP(iwet); 
 par.POP = data.POP(iwet);
@@ -236,15 +249,12 @@ par.DOCl= data.DOCl(iwet);
 par.DOCr= data.DOCr(iwet);
 par.O2  = data.O2(iwet);
 
-%% 
-%--------------------- prepare parameters ------------------
-% load optimal parameters from a file or set them to default values 
-par = SetPar(par)  ;
-% pack parameters into an array, assign them corresponding indices.
-par = PackPar(par) ;
+Xin.P = [par.DIP;par.POP;par.DOP;par.DOPl];
+Xin.C = [par.DIC;par.POC;par.DOC;par.PIC;par.ALK;par.DOCl;par.DOCr; par.pco2atm];
+Xin.O2 = [par.O2];
 
-x0    = par.p0 ;
-nip = length(x0);
+
+
 %-------------------set up timestepper -------------------------
 spa = par.spa;
 
@@ -257,6 +267,10 @@ nsteps =              [ 24     364     50       20       30     ]; % number of s
 %                      1 hr    2 day   1 hr    2 day.  1 month  1 year   4 years  
 dt_size =        spa./[365*24  365/2   365*24  365/2     12       1        0.25   ];  % step sizes in seconds
 nsteps =              [ 24     364/2   24      364/2     50       20       30     ]; % number of steps for each size
+
+%% test run
+dt_size =       spa./[365*24  365     ];  % step sizes in seconds
+nsteps =              [ 2     2     ]; % number of steps for each size
 
 Nstep_save = 10; % Number of steps between saving output
 
@@ -278,7 +292,11 @@ Diags.Tout = Tout ;
 Diags.pco2atmout = pco2atmout ;
 Diags.DICint = tmp; 
 
-
+% initialize output structure
+    %if par.saveall
+        OUT.P = zeros(length(Xin.P),total_nsteps); 
+        OUT.C = zeros(length(Xin.C),total_nsteps); 
+    %end
 
 
 
@@ -425,15 +443,6 @@ t0 = 0;
 % Set up
 % solve/load steady state solution 
 % check the data and par for steady-state drive the time stepping method 
-    Xin.P = [par.DIP;par.POP;par.DOP;par.DOPl];
-    Xin.C = [par.DIC;par.POC;par.DOC;par.PIC;par.ALK;par.DOCl;par.DOCr; par.pco2atm];
-    Xin.O2 = [par.O2];
-
-    
-    %if par.saveall
-        OUT.P = zeros(length(Xin.P),total_nsteps); 
-        OUT.C = zeros(length(Xin.C),total_nsteps); 
-    %end
 
 % change npp to simulate fertilization.
 
@@ -465,26 +474,36 @@ for dt_idx = 1:length(dt_size)
     end
     % set up time stepper for P and C (only need to factor trapezoid matrix once for each step size dt)
     % run Peqn
+    fprintf('\ndt = %.1f \n', dt)
+    fprintf('...run Peqn \n')
     [F_P,J_P,par] = Peqn(Xin.P, par); 
     % Evaluate RHS and Jacobian at current state (X, t)
     % Build trapezoidal matrices
     I_P  = speye(numel(Xin.P(:)));
     A_P  = I_P + 0.5*dt*J_P;
     B_P  = I_P - 0.5*dt*J_P;
+    fprintf('...factor the big matrix... \n')
+    tic
     A_Pfactored = mfactor(A_P); 
+    toc
 
     % run CeqnAtm
+    fprintf('...run CeqnAtm \n')
     [F_C,J_C,par] = CeqnAtm(Xin.C, par);
     % Evaluate RHS and Jacobian at current state (X, t)
     % Build trapezoidal matrices
     I_C  = speye(numel(Xin.C(:)));
     A_C  = I_C + 0.5*dt*J_C;
     B_C  = I_C - 0.5*dt*J_C;
+    fprintf('...factor the big matrix... \n')
+    tic
     A_Cfactored = mfactor(A_C);
+    toc
 
     % start iterating through n_substeps for each dt
     for ii = 1:n_substeps 
         global_step = global_step + 1; 
+        fprintf('%i. ',ii); 
         t = t+dt;
         Tout(global_step) = t;
 
@@ -527,21 +546,37 @@ for dt_idx = 1:length(dt_size)
         OUT.P(:,global_step) = Xout.P;
         OUT.C(:,global_step) = Xout.C;
 
-        if ~par.saveall
-            if mod(global_step,Nstep_save) == 0
-            outname = sprintf('%s%sTstep_%i_%.3fyr.mat',output_dir,VerName,global_step,t/spa);
-            fprintf('saving model step to file: %s \n',outname)
-            save(outname, 'Xout','Tout','t','global_step','-v7.3')
-            end
-        end
+        % if ~par.saveall
+        %     if mod(global_step,Nstep_save) == 0
+        %     outname = sprintf('%s%sTstep_%i_%.3fyr.mat',output_dir,VerName,global_step,t/spa);
+        %     fprintf('saving model step to file: %s \n',outname)
+        %     save(outname, 'Xout','Tout','t','global_step','-v7.3')
+        %     end
+        % end
         
     
 
     end
 end
 
-fprintf('saving model solution to file: %s \n',par.fname)
-save(par.fname, 'Tout','OUT');
+% fprintf('saving model solution to file: %s \n',par.fname)
+% save(par.fname, 'Tout','OUT');
+
+%  if exist(par.fname, 'file')
+%     reply = input(sprintf('WARNING: File ( %s ) already exists. \nDo you want to overwrite this file? Y/N: ', par.fname), 's');
+%     if strcmpi(reply, 'Y')
+%         fprintf('Overwriting File... \n');
+%         fprintf('saving model solution to file: %s \n',par.fname)
+%         save(par.fname, 'data')
+%     else
+%         fprintf('Execution stopped by User.\n');
+%         fprintf('--------------------------\n\n');
+%         return;
+%     end
+% else
+%     fprintf('saving model solution to file: %s \n',par.fname)
+%     save(par.fname, 'data')
+% end
 
 %save output after 1 year of fertilization. 
 % start new timestep to continue without fertilization
@@ -563,181 +598,3 @@ save(par.fname, 'Tout','OUT');
         % data.DOCl = DOCl ;  data.pco2atm = par.pco2atm ;
         % fprintf('saving model solution to file: %s \n',par.fname)
         % save(par.fname, 'data')
-
-% %%%%%%%%%%%%%%%%%%   steady state BGC model   %%%%%%%%%%%%%%%%%%%%%%%%
-function [f,J] =PCeqns(x0, par)
-    clear data
-    x = x0;
-    iter = 0;
-    %[f,fx,fxx,data] = neglogpost(xsol,par);
-    %fprintf('----neglogpost complete----\n')
-    fprintf('\ncurrent time is:      %s\n',datetime('now')) ;
-    fprintf('current iteration is: %d \n',iter) ;
-
-    % print and save current parameter values to
-    % a file that is used to reset parameters ;
-    PrintPar(x, par) ;    
-    % increment iteration counter
-    iter = iter + 1  ;
-
-    nx   = length(x) ; % number of parameters
-    dVt  = par.dVt   ;
-    M3d  = par.M3d   ;
-    iwet = par.iwet  ;
-    nwet = par.nwet  ;
-    %
-    f    = 0 ;
-    %%%%%%%%%%%%%%%%%%   Solve P    %%%%%%%%%%%%%%%%%%%%%%%%
-    idip = find(par.po4raw(iwet) > 0.05) ;
-    Wp   = d0(dVt(iwet(idip))/sum(dVt(iwet(idip)))) ;
-    mu   = sum(Wp*par.po4raw(iwet(idip)))/sum(diag(Wp)) ;
-    var  = sum(Wp*(par.po4raw(iwet(idip))-mu).^2)/sum(diag(Wp)) ;
-    Wip  = par.dipscale*Wp/var ;
-
-    idop = find(par.dopraw(iwet) > 0.0) ;
-    Wp   = d0(dVt(iwet(idop))/sum(dVt(iwet(idop)))) ;
-    mu   = sum(Wp*par.dopraw(iwet(idop)))/sum(diag(Wp)) ;
-    var  = sum(Wp*(par.dopraw(iwet(idop))-mu).^2)/sum(diag(Wp)) ;
-    Wop  = par.dopscale*Wp/var ;
-    %
-    %tic 
-    [par, P, Px, Pxx] = eqPcycle(x, par) ;
-    DIP  = M3d+nan  ;  DIP(iwet)  = P(1+0*nwet:1*nwet) ;
-    POP  = M3d+nan  ;  POP(iwet)  = P(1+1*nwet:2*nwet) ;
-    DOP  = M3d+nan  ;  DOP(iwet)  = P(1+2*nwet:3*nwet) ;
-    DOPl = M3d+nan  ;  DOPl(iwet) = P(1+3*nwet:4*nwet) ;
-    %toc 
-    par.Px   = Px  ;
-    par.Pxx  = Pxx ;
-    par.DIP  = DIP(iwet) ; %need to update DIP field for C cycle run
-    par.POP  = POP(iwet) ;
-    par.DOP  = DOP(iwet) ;
-    par.DOPl = DOPl(iwet) ;
-
-    data.DIP = DIP ; data.POP  = POP  ;
-    data.DOP = DOP ; data.DOPl = DOPl ;
-    % DIP & DOP error
-    DOP = DOP + DOPl; % sum of semilabile and labile DOP ;
-    eip = DIP(iwet(idip)) - par.po4raw(iwet(idip)) ;
-    eop = DOP(iwet(idop)) - par.dopraw(iwet(idop)) ;
-    f  = f + 0.5*(eip.'*Wip*eip) + 0.5*(eop.'*Wop*eop); 
-    f_components.DIP = 0.5*(eip.'*Wip*eip);
-    f_components.DOP = 0.5*(eop.'*Wop*eop); 
-
-    
-    
-    %%%%%%%%%%%%%%%%%%   End Solve P    %%%%%%%%%%%%%%%%%%%%
-
-    %%%%%%%%%%%%%%%%%%     Solve C   %%%%%%%%%%%%%%%%%%%%%%%%
-    if (par.Cmodel == on)
-        idic = find(par.dicraw(iwet) > 0) ;
-        Wic  = d0(dVt(iwet(idic))/sum(dVt(iwet(idic)))) ;
-        mu   = sum(Wic*par.dicraw(iwet(idic)))/sum(diag(Wic)) ;
-        var  = sum(Wic*(par.dicraw(iwet(idic))-mu).^2)/sum(diag(Wic));
-        Wic  = par.dicscale*Wic/var  ;
-        
-        ialk = find(par.alkraw(iwet) > 0) ;
-        Wlk  = d0(dVt(iwet(ialk))/sum(dVt(iwet(ialk)))) ;
-        mu   = sum(Wlk*par.alkraw(iwet(ialk)))/sum(diag(Wlk)) ;
-        var  = sum(Wlk*(par.alkraw(iwet(ialk))-mu).^2)/sum(diag(Wlk));
-        Wlk  = par.alkscale*Wlk/var  ;
-        
-        idoc = find(par.docraw(iwet) > 0) ;
-        Woc  = d0(dVt(iwet(idoc))/sum(dVt(iwet(idoc)))) ;
-        mu   = sum(Woc*par.docraw(iwet(idoc)))/sum(diag(Woc)) ;
-        var  = sum(Woc*(par.docraw(iwet(idoc))-mu).^2)/sum(diag(Woc));
-        Woc  = par.docscale*Woc/var ;
-        %tic 
-        [par, C, Cx, Cxx] = eqCcycleAtm(x, par) ;
-        DIC  = M3d+nan ;  DIC(iwet)  = C(0*nwet+1:1*nwet) ;
-        POC  = M3d+nan ;  POC(iwet)  = C(1*nwet+1:2*nwet) ;
-        DOC  = M3d+nan ;  DOC(iwet)  = C(2*nwet+1:3*nwet) ;
-        PIC  = M3d+nan ;  PIC(iwet)  = C(3*nwet+1:4*nwet) ;
-        ALK  = M3d+nan ;  ALK(iwet)  = C(4*nwet+1:5*nwet) ;
-        DOCl = M3d+nan ;  DOCl(iwet) = C(5*nwet+1:6*nwet) ;
-        DOCr = M3d+nan ;  DOCr(iwet) = C(6*nwet+1:7*nwet) ;
-        pco2atm = C(7*nwet+1);
-       % toc
-
-        par.DIC = DIC(iwet) ;
-        par.POC = POC(iwet) ;
-        par.DOC = DOC(iwet) ;
-        par.DOCl = DOCl(iwet) ;
-        par.DOCr = DOCr(iwet) ;
-        par.pco2atm = pco2atm ;
-        % DIC = DIC + par.dicant  ;
-        par.Cx    = Cx   ;  par.Cxx   = Cxx ;
-        data.DIC  = DIC  ;  data.POC  = POC ;
-        data.DOC  = DOC  ;  data.PIC  = PIC ;
-        data.ALK  = ALK  ;  data.DOCr = DOCr ;
-        data.DOCl = DOCl ;  data.pco2atm = pco2atm ;
-        try
-            data.C2P = M3d+nan ; data.C2P(iwet) = par.C2P; 
-        catch ME
-            fprintf('error in %s (line %d): %s \n', ME.stack(1).name,ME.stack(1).line,ME.message);
-            fprintf('Unable to store C2P in data struct. \n');
-        end
-        % DOC error
-        DOC = DOC + DOCr + DOCl; % sum of labile and refractory DOC ;
-        eic = DIC(iwet(idic)) - par.dicraw(iwet(idic)) ;
-        eoc = DOC(iwet(idoc)) - par.docraw(iwet(idoc)) ;
-        elk = ALK(iwet(ialk)) - par.alkraw(iwet(ialk)) ;
-        f   = f + 0.5*(eic.'*Wic*eic) + 0.5*(eoc.'*Woc*eoc) + ...
-              0.5*(elk.'*Wlk*elk);
-
-        f_components.DIC = 0.5*(eic.'*Wic*eic);
-        f_components.DOC = 0.5*(eoc.'*Woc*eoc);
-        f_components.ALK = 0.5*(elk.'*Wlk*elk);
-
-        % % print carbon system info
-	    % fprintf('Atm CO2 concentration: %3.2f ppm \n', pco2atm);
-		% %DIC
-		% DICtmp = model.DIC.*par.dVt.*1e-3;  %units = mol C
-    	% tDIC = sum(DICtmp(iwet),'all');
-    	% fprintf('Integrated total DIC in ocean = %10.4e mol C   (%6.3e Pg C) \n',tDIC,tDIC*12*1e-15)
-        % % all forms of carbon
-        % DICtmp = (model.DIC+model.DOC + model.POC +model.PIC).*par.dVt.*1e-3;
-        % tC_ocn = sum(DICtmp(iwet),'all');
-		% tC_all = tC_ocn + model.pco2atm*par.Natm*1e-6;
-		% fprintf('Atm pCO2 from prescribed TC - TC_ocean: %3.2f ppm \n',(par.totalCarbon - tC_ocn)/par.Natm*1e6) ;
-		% fprintf('Integrated total C in ocean =   %10.4e mol C   (%6.3e Pg C) \n',tC_ocn,tC_ocn*12*1e-15);
-		% fprintf('total C in System (Atm+Ocn) =   %10.4e mol C   (%6.3e Pg C) \n\n',tC_all,tC_all*12*1e-15);
-		% model.totalC = tC_all;
-		% model.totalC_ocean = tC_ocn;
-    end
-    %%%%%%%%%%%%%%%%%%   End Solve C    %%%%%%%%%%%%%%%%%%%
-
-    % Print and save objective function subcomponent values
-    data.f = f;
-    data.f_components = f_components;
-
-    fprintf('current objective function value is: %3.3e \n\n',f) 
-    fprintf('current objective function value for fit to DIP is %3.3e \n',f_components.DIP) 
-    fprintf('current objective function value for fit to DOP is %3.3e \n',f_components.DOP) 
-    if (par.Cmodel == on)
-        fprintf('current objective function value for fit to DIC is %3.3e \n',f_components.DIC) 
-        fprintf('current objective function value for fit to DOC is %3.3e \n',f_components.DOC) 
-        fprintf('current objective function value for fit to ALK is %3.3e \n',f_components.ALK) 
-    end
-
-
-    %% note: skipping save for testing
-    if exist(par.fname, 'file')
-        reply = input(sprintf('WARNING: File ( %s ) already exists. \nDo you want to overwrite this file? Y/N: ', par.fname), 's');
-        if strcmpi(reply, 'Y')
-            fprintf('Overwriting File... \n');
-            fprintf('saving model solution to file: %s \n',par.fname)
-            save(par.fname, 'data')
-        else
-            fprintf('Execution stopped by User.\n');
-            fprintf('--------------------------\n\n');
-            return;
-        end
-    else
-       fprintf('saving model solution to file: %s \n',par.fname)
-       save(par.fname, 'data')
-    end
-
-
-fprintf('-------------- end! ---------------\n');
-end
