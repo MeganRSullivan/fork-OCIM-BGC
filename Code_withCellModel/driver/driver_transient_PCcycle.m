@@ -49,6 +49,9 @@ par.nl = 2; % number of layers in the model euphotic zone (doesn't change)
 
 Gtest = off ; 
 Htest = off ;
+par.saveall = true; 
+par.save_stride = 12;   % monthly saves by default
+
 par.optim   = off ; 
 par.Cmodel  = on ; 
 par.Omodel  = off ; 
@@ -245,11 +248,18 @@ nip = length(x0);
 %-------------------set up timestepper -------------------------
 spa = par.spa;
 
-
+%%
 % Default schedule
 %                      1 hr    1 day   1 month  1 year   4 years   
 dt_size =        spa./[365*24  365     12       1        0.25   ];  % step sizes in seconds
-nsteps =              [ 50      50      50       20       30     ]; % number of steps for each size
+nsteps =              [ 24     364     50       20       30     ]; % number of steps for each size
+
+%                      1 hr    2 day   1 hr    2 day.  1 month  1 year   4 years  
+dt_size =        spa./[365*24  365/2   365*24  365/2     12       1        0.25   ];  % step sizes in seconds
+nsteps =              [ 24     364/2   24      364/2     50       20       30     ]; % number of steps for each size
+
+Nstep_save = 10; % Number of steps between saving output
+
 par.dt_schedule = dt_size ;
 par.nsteps_schedule = nsteps ;
 
@@ -261,8 +271,16 @@ fprintf('Time-step Schedule: %d total steps over %.2f years\n', total_nsteps, to
 % allocate output  
 % diagnostics to save at every timestep: 
 % pco2atm, volume integrated DIC, integrated PNPP, CNPP
-Tout = zeros(1,total_nstep);
-pco2atmout = zeros(1,total_nstep);
+tmp = zeros(1,total_nsteps);
+Tout = zeros(1,total_nsteps);
+pco2atmout = zeros(1,total_nsteps);
+Diags.Tout = Tout ;
+Diags.pco2atmout = pco2atmout ;
+Diags.DICint = tmp; 
+
+
+
+
 
 t0 = 0; 
   t = t0;
@@ -277,6 +295,109 @@ t0 = 0;
     fprintf('...Ocn: Integrated total DIC = %10.3e Pg C \n',totalDIC*12*1e-15)
     fprintf('...Atm: Integrated total CO2 = %10.3e Pg C \n',totalCO2atm*12*1e-15);
 
+%% change npp to simulate fertilization.
+% calculate NPP at steady state
+    mmC = 12;
+    spd = 60*60*24; 
+
+    LAM = 0*M3d;
+    for ji = 1 : par.nl
+        LAM(:,:,ji) = (par.npp(:,:,ji).^par.beta).*par.Lambda(:,:,ji) ;
+    end 
+
+    L      = d0(LAM(iwet));  % PO4 assimilation rate [s^-1];
+    par.L  = L;
+    
+    % organic P production
+    G = M3d*0;
+    G(iwet) = par.alpha*L*par.DIP;
+
+    C2P3D = data.C2P;
+
+    % organic C production
+    % not including labile
+    Cprod_pocdoc = G.*C2P3D;
+    % par.Cnpp; % unit: (mmolC/m^3/s) 
+    Cprod_docl = par.Cnpp - Cprod_pocdoc;
+
+    tmp = sum(par.Cnpp(iwet).*dVt(iwet),'all','omitnan')*mmC*spd*365*1e-18;
+    fprintf('Global satellite C NPP: %3.2f Pg C /yr \n\n',tmp);
+
+    globalCprod_pocdoc = sum(Cprod_pocdoc(iwet).*dVt(iwet),'all','omitnan')*mmC*spd*365*1e-18;
+    fprintf('Global POC and DOC production (G*C2P) excluding labile DOC: %3.2f Pg C /yr \n',globalCprod_pocdoc);
+
+    tmp = sum(Cprod_docl(iwet).*dVt(iwet),'all','omitnan')*mmC*spd*365*1e-18;
+    fprintf('Global labile DOC production (satellite CNPP - G*C2P): %3.2f Pg C /yr \n\n',tmp);
+%%
+    % increase L, DIP uptake rate, by 10% everywhere
+    fprintf('10 percent increase L ... \n')
+    G = M3d*0;
+    G(iwet) = 1.1*par.alpha*L*par.DIP;
+    Cprod_pocdoc = G.*C2P3D;
+    globalCprod_pocdoc = sum(Cprod_pocdoc(iwet).*dVt(iwet),'all','omitnan')*mmC*spd*365*1e-18;
+    fprintf('Global POC and DOC production (G*C2P) excluding labile DOC: %3.2f Pg C /yr \n',globalCprod_pocdoc);
+
+    % 2.6 Pg C increase. but biggest changes in subtropical gyres where L is
+    % high, but this is not where fertilization would happen
+    % Instead, make a mask to only increase L in southern ocean?
+    % make an HNLC mask on 91x180x24 grid, only need surface 2 layers for production
+    % make a Southern ocean mask
+    MSKS.SO = M3d; % initialize mask of all ocean grid points   
+    MSKS.SO(find(grd.yt>-45),:,:) = 0; % set everything north of -45 lat to zero
+
+
+    % Equatorial Pacific HNLC
+    % lat bounds -10:10
+    % lon bounds 140:270 
+    MSKS.EqP = M3d;
+
+    MSKS.EqP(find(grd.yt>5),:,:) = 0;
+    MSKS.EqP(find(grd.yt<-5),:,:) = 0;
+    MSKS.EqP(:,find(grd.xt>270),:) = 0;
+    MSKS.EqP(:,find(grd.xt<140),:) = 0;
+
+    % N. Pacific high lat
+    %lon: 140:220
+    %lat bounds 45:65 N
+    MSKS.NP = M3d;
+    MSKS.NP(find(grd.yt>65),:,:) = 0;
+    MSKS.NP(find(grd.yt<45),:,:) = 0;
+    MSKS.NP(:,find(grd.xt<140),:) = 0;
+    MSKS.NP(:,find(grd.xt>220),:) = 0;
+
+    %figure; imagesc(MSKS.EqP(:,:,1)); axis xy; cb = colorbar; title('Equatorial Pacific HNLC mask')
+    %figure; imagesc(MSKS.NP(:,:,1)); axis xy; cb = colorbar; title('North Pacific HNLC mask')
+    %figure; imagesc(M3d(:,:,1)); axis xy; cb = colorbar; title('ocean mask')
+
+    MSKS.HNLC = (MSKS.SO | MSKS.EqP | MSKS.NP);
+    figure; 
+    imAlpha = M3d(:,:,1); imagesc(MSKS.HNLC(:,:,1),'AlphaData',imAlpha); axis xy; cb = colorbar; title('All HNLC mask')
+
+%% now increase L in only HNLC regions
+    % increase L, DIP uptake rate, by 10% everywhere
+    fprintf('50 percent increase L in HNLC ... \n')
+    G = M3d*0;
+    G(iwet) = par.alpha*L*par.DIP;
+    % increase uptake rate in HNLC
+    G(MSKS.HNLC) = 1.5*G(MSKS.HNLC);
+    Cprod_pocdoc = G.*C2P3D;
+    globalCprod_pocdoc = sum(Cprod_pocdoc(iwet).*dVt(iwet),'all','omitnan')*mmC*spd*365*1e-18;
+    fprintf('Global POC and DOC production (G*C2P) excluding labile DOC: %3.2f Pg C /yr \n',globalCprod_pocdoc);
+
+    % 27.92 Pg C/yr (from 25.96 Pg C/yr)
+
+    % Implement as change to par.Lambda, since that is created in SetUp and used in Peqn
+    % or implemenet as change to par.npp, but thats a bit harder since par.npp is raised to pawer of beta
+    % after running setup
+    % par.Lambda(jj,ii,1) = 1./(1e-6+DIP_obs(jj,ii,1)) ;      % unit: [1/(mmolP/m^3)]
+    % par.Lambda(jj,ii,2) = 1./(1e-6+DIP_obs(jj,ii,2)) ;
+    % in Peqn, LAM(:,:,ji) = (npp(:,:,ji).^beta).*Lambda(:,:,ji) ; L = d0(LAM(iwet))
+
+    % for first year of timesteps, increase Lambda in HNLC regions by 50%
+    % par.Lambda(MSKS.HNLC) = 1.5*par.Lambda(MSKS.HNLC);
+
+    % after 1 year of timesteps, reset Lambda to original value
+    % par.Lambda(MSKS.HNLC) = (1/1.5)*par.Lambda(MSKS.HNLC);
 
 
 % 3) Time integration with scheduled stepping
@@ -307,6 +428,15 @@ t0 = 0;
     Xin.P = [par.DIP;par.POP;par.DOP;par.DOPl];
     Xin.C = [par.DIC;par.POC;par.DOC;par.PIC;par.ALK;par.DOCl;par.DOCr; par.pco2atm];
     Xin.O2 = [par.O2];
+
+    
+    %if par.saveall
+        OUT.P = zeros(length(Xin.P),total_nsteps); 
+        OUT.C = zeros(length(Xin.C),total_nsteps); 
+    %end
+
+% change npp to simulate fertilization.
+
 % set up iteration counter 
 t = t0;
 global_step = 1; % global step counter for saving
@@ -318,6 +448,21 @@ for dt_idx = 1:length(dt_size)
     Xin.C = [par.DIC;par.POC;par.DOC;par.PIC;par.ALK;par.DOCl;par.DOCr; par.pco2atm];
     Xin.O2 = [par.O2];
 
+    % Reset Lambda to simulate fertilization
+    par.Lambda = M3d*0 ;
+    [nx,ny,nz] = size(M3d) ;
+    for jj = 1 : nx
+        for ii = 1 : ny     
+            par.Lambda(jj,ii,1) = 1./(1e-6+DIP_obs(jj,ii,1)) ;      % unit: [1/(mmolP/m^3)]
+            par.Lambda(jj,ii,2) = 1./(1e-6+DIP_obs(jj,ii,2)) ;
+        end
+    end
+
+    %increase lambda by 50% in HNLC regions, for first year (2 )
+    if dt_idx <3                  
+        % if fertilization == on, increase P uptake by enough to draw down surface DIP in S.O.
+        par.Lambda(MSKS.HNLC) = 1.5*par.Lambda(MSKS.HNLC);
+    end
     % set up time stepper for P and C (only need to factor trapezoid matrix once for each step size dt)
     % run Peqn
     [F_P,J_P,par] = Peqn(Xin.P, par); 
@@ -340,6 +485,8 @@ for dt_idx = 1:length(dt_size)
     % start iterating through n_substeps for each dt
     for ii = 1:n_substeps 
         global_step = global_step + 1; 
+        t = t+dt;
+        Tout(global_step) = t;
 
         % load previous iteration solution
         Xin.P = [par.DIP;par.POP;par.DOP;par.DOPl];
@@ -373,13 +520,49 @@ for dt_idx = 1:length(dt_size)
         par.DOCr   = Xout.C(6*nwet+1:7*nwet);
         par.pco2atm= Xout.C(7*nwet+1);  
 
-        % save output at each time step
+        
 
+        % save output at each time step
+        pco2atmout(global_step) = par.pco2atm;
+        OUT.P(:,global_step) = Xout.P;
+        OUT.C(:,global_step) = Xout.C;
+
+        if ~par.saveall
+            if mod(global_step,Nstep_save) == 0
+            outname = sprintf('%s%sTstep_%i_%.3fyr.mat',output_dir,VerName,global_step,t/spa);
+            fprintf('saving model step to file: %s \n',outname)
+            save(outname, 'Xout','Tout','t','global_step','-v7.3')
+            end
+        end
+        
+    
 
     end
 end
 
+fprintf('saving model solution to file: %s \n',par.fname)
+save(par.fname, 'Tout','OUT');
 
+%save output after 1 year of fertilization. 
+% start new timestep to continue without fertilization
+
+
+
+% save model solution to data file
+        % DIC  = M3d+nan ;  DIC(iwet)  = par.DIC ;
+        % POC  = M3d+nan ;  POC(iwet)  = par.POC ;
+        % DOC  = M3d+nan ;  DOC(iwet)  = par.DOC ;
+        % PIC  = M3d+nan ;  PIC(iwet)  = par.PIC ;
+        % ALK  = M3d+nan ;  ALK(iwet)  = par.ALK ;
+        % DOCl = M3d+nan ;  DOCl(iwet) = par.DOCl ;
+        % DOCr = M3d+nan ;  DOCr(iwet) = par.DOCr ;
+        % 
+        % data.DIC  = DIC  ;  data.POC  = POC ;
+        % data.DOC  = DOC  ;  data.PIC  = PIC ;
+        % data.ALK  = ALK  ;  data.DOCr = DOCr ;
+        % data.DOCl = DOCl ;  data.pco2atm = par.pco2atm ;
+        % fprintf('saving model solution to file: %s \n',par.fname)
+        % save(par.fname, 'data')
 
 % %%%%%%%%%%%%%%%%%%   steady state BGC model   %%%%%%%%%%%%%%%%%%%%%%%%
 function [f,J] =PCeqns(x0, par)
