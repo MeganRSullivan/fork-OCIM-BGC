@@ -23,9 +23,11 @@ addpath('../src/')
 
 % test1_eqPcycle_with_DOPl_gamma1pct_from_reoptNature_with_dop_GM15_npp1
 
-VerName = 'transient_from_reoptNature_with_dop_GM15_npp1_'; 		% optional version name. leave as an empty character array
+VerName = 'transient_test_6h_2d_5d_from_reoptNature_with_dop_GM15_npp1_'; 		% optional version name. leave as an empty character array
 					% or add a name ending with an underscore
 VerNum = '';		% optional version number for testing
+
+par.VerName = VerName;
 
 % Choose C2P function
 par.C2Pfunctiontype = 'P';
@@ -130,6 +132,9 @@ par.opt_bb    = on  ;
 %-------------load data and set up parameters---------------------
 SetUp ;                      
 
+mmC = 12.0;         % molar mass of Carbon
+mmP = 31;           % molar mass of P = 31 grams/mol
+
 % save results 
 % ATTENTION: Change this directory to where you want to
 % save your output files
@@ -187,6 +192,7 @@ end
 par.fxhat = fxhat ;
 par.fxpar = fxpar ;
 
+par.fname_diags = strcat(fname,'_diagnostics.mat') ;
 % -------------------update initial guesses --------------
 if isfile(par.fname)
     fprintf('loading initial guess on C and O from file: %s \n',par.fname)
@@ -264,13 +270,13 @@ spa = par.spa;
 dt_size =        spa./[365*24  365     12       1        0.25   ];  % step sizes in seconds
 nsteps =              [ 24     364     50       20       30     ]; % number of steps for each size
 
-%                      1 hr    2 day   1 hr    2 day.  1 month  1 year   4 years  
-dt_size =        spa./[365*24  365/2   365*24  365/2     12       1        0.25   ];  % step sizes in seconds
-nsteps =              [ 24     364/2   24      364/2     50       20       30     ]; % number of steps for each size
+%                      6 hr      2 day   1 hr    2 day.  1 month  1 year   4 years  
+dt_size =        spa./[365*24/6  365/2   365*24  365/2     12       1        0.25   ];  % step sizes in seconds
+nsteps =              [ 4        364/2   24      364/2     50       20       30     ]; % number of steps for each size
 
 %% test run
-dt_size =       spa./[365*24  365     ];  % step sizes in seconds
-nsteps =              [ 2     2     ]; % number of steps for each size
+dt_size =       spa./[365*24/6  365/2  365/5   ];  % step sizes in seconds
+nsteps =              [ 2        2     2]; % number of steps for each size
 
 Nstep_save = 10; % Number of steps between saving output
 
@@ -289,8 +295,11 @@ tmp = zeros(1,total_nsteps);
 Tout = zeros(1,total_nsteps);
 pco2atmout = zeros(1,total_nsteps);
 Diags.Tout = Tout ;
-Diags.pco2atmout = pco2atmout ;
-Diags.DICint = tmp; 
+Diags.pco2atm = pco2atmout ;
+Diags.totalDIC = tmp; 
+Diags.PNPP = tmp;
+Diags.CNPP_nolabile = tmp;
+
 
 % initialize output structure
     %if par.saveall
@@ -501,9 +510,10 @@ for dt_idx = 1:length(dt_size)
     toc
 
     % start iterating through n_substeps for each dt
+    tic
     for ii = 1:n_substeps 
         global_step = global_step + 1; 
-        fprintf('%i. ',ii); 
+        %fprintf('%i. ',ii); 
         t = t+dt;
         Tout(global_step) = t;
 
@@ -542,25 +552,55 @@ for dt_idx = 1:length(dt_size)
         
 
         % save output at each time step
-        pco2atmout(global_step) = par.pco2atm;
-        OUT.P(:,global_step) = Xout.P;
-        OUT.C(:,global_step) = Xout.C;
+        if par.saveall
+            OUT.P(:,global_step) = Xout.P;
+            OUT.C(:,global_step) = Xout.C;
+        else
+            % OUT{ii}.P = Xout.P;
+            % OUT{ii}.C = Xout.C;
+        end
 
         % if ~par.saveall
         %     if mod(global_step,Nstep_save) == 0
+        %     save_step = save_step +1;
+        %     OUT.P{save_step} = Xout.P;
         %     outname = sprintf('%s%sTstep_%i_%.3fyr.mat',output_dir,VerName,global_step,t/spa);
         %     fprintf('saving model step to file: %s \n',outname)
         %     save(outname, 'Xout','Tout','t','global_step','-v7.3')
         %     end
         % end
         
-    
+        Diags.Tout(global_step) = Tout(global_step);
+        Diags.pco2atm(global_step) = par.pco2atm;        
+
+        % calculate NPP
+        PNPP = par.alpha*par.L*par.DIP;
+        CNPP_nolabile = PNPP.*par.C2P;
+
+        Diags.PNPP(global_step) = sum(PNPP.*dVt(iwet),'all','omitnan')*mmP*spd*365*1e-18 ; 
+        Diags.CNPP_nolabile(global_step) = sum(CNPP_nolabile.*dVt(iwet),'all','omitnan')*mmC*spd*365*1e-18 ; 
+
+        % calculate integrated DIC inventory in the ocean
+        totalDIC = sum(par.DIC.*par.dVt(iwet).*1e-3)*12*1e-15; % units = Pg C
+
+        Diags.totalDIC(global_step) = totalDIC;
+
+        fprintf('t= %10.2f, Ocn: totalDIC = %11.4e Pg C ; Atm pCO2 = %10.3f ppm \n',t/spd, totalDIC, par.pco2atm)
 
     end
+    toc
+    %sprintf('%sdt_%.0fd.mat', par.VerName,dt/spd) 
 end
 
+%[par.VerName 'diagnostics.mat']
+fprintf('saving diagnostics to file: %s \n',par.fname_diags)
+save(par.fname_diags,"Diags","Tout","dt_size","nsteps")
+
 fprintf('saving model solution to file: %s \n',par.fname)
-save(par.fname, 'Tout','OUT');
+save(par.fname, 'Tout','OUT','-v7.3');
+
+
+
 
 %  if exist(par.fname, 'file')
 %     reply = input(sprintf('WARNING: File ( %s ) already exists. \nDo you want to overwrite this file? Y/N: ', par.fname), 's');
@@ -598,3 +638,5 @@ save(par.fname, 'Tout','OUT');
         % data.DOCl = DOCl ;  data.pco2atm = par.pco2atm ;
         % fprintf('saving model solution to file: %s \n',par.fname)
         % save(par.fname, 'data')
+
+
