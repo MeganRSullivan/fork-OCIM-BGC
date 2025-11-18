@@ -559,8 +559,8 @@ for dt_idx = 1:length(dt_size)
     end
 end
 
-% fprintf('saving model solution to file: %s \n',par.fname)
-% save(par.fname, 'Tout','OUT');
+fprintf('saving model solution to file: %s \n',par.fname)
+save(par.fname, 'Tout','OUT');
 
 %  if exist(par.fname, 'file')
 %     reply = input(sprintf('WARNING: File ( %s ) already exists. \nDo you want to overwrite this file? Y/N: ', par.fname), 's');
