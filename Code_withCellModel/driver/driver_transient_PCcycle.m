@@ -23,7 +23,7 @@ addpath('../src/')
 
 % test1_eqPcycle_with_DOPl_gamma1pct_from_reoptNature_with_dop_GM15_npp1
 
-VerName = 'transient_151y_from_reoptNature_with_dop_GM15_npp1_'; 		% optional version name. leave as an empty character array
+VerName = 'transient_test_steadystate_from_reoptNature_with_dop_GM15_npp1_'; 		% optional version name. leave as an empty character array
 					% or add a name ending with an underscore
 VerNum = '';		% optional version number for testing
 
@@ -203,6 +203,8 @@ end
 if isfile(par.fnameload)
     fprintf('loading initial guess on C and O from file: %s \n',par.fnameload)
     load(par.fnameload,'data')
+else
+    fprintf('did not load a previous model solution from file par.fnameload \n')
 end 
 
 % to timestep P, need to define initial guess as optimal model solution
@@ -291,8 +293,8 @@ dt_size =        spa./[365*24/6  365/4   365*24/6  365/4     12       1        0
 nsteps =              [ 4        91        4       364/4     48       45       25     ]; % number of steps for each size
 
 %% test run
-%dt_size =       spa./[365*24/6  365/2  365/5   ];  % step sizes in seconds
-%nsteps =              [ 2        2     2]; % number of steps for each size
+dt_size =       spa./[365*24/6  365/4  12    1    0.25];  % step sizes in seconds
+nsteps =              [ 8        91    48    50   25]; % number of steps for each size
 
 Nstep_save = 10; % Number of steps between saving output
 
@@ -505,7 +507,7 @@ for dt_idx = 1:length(dt_size)
     end
 
     %increase lambda by 50% in HNLC regions, for first year (2 )
-    if dt_idx <3                  
+    if dt_idx <0                  
         % if fertilization == on, increase P uptake by enough to draw down surface DIP in S.O.
         par.Lambda(MSKS.HNLC) = 1.5*par.Lambda(MSKS.HNLC);
         fprintf('...Increase Lambda in HNLCs by 50 percent from steady state model\n')
