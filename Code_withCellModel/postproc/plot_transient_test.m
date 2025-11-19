@@ -18,16 +18,21 @@ nwet = length(iwet)         ;
 dAt  = grd.DXT3d.*grd.DYT3d;
 dVt  = dAt.*grd.DZT3d;
 
+M3dsurf = M3d ;             % make surface mask (ocn grid cells in contact with atm) 
+	M3dsurf(:,:,2:end) = 0 ;
+	Msurf = M3dsurf(iwet);
+	isrf = find(M3dsurf(iwet)) ;
+
 spa = 60*60*24*365;
 spd = 60*60*24;
 %% check output
 
-tindx = 4;
+tindx = 2;
 
-par.DIP = OUT.P(1:nwet);
-par.POP = OUT.P(1*nwet+1:2*nwet);
-par.DOP = OUT.P(2*nwet+1:3*nwet);
-par.DOPl= OUT.P(3*nwet+1:4*nwet);
+par.DIP = OUT.P(1:nwet,tindx);
+par.POP = OUT.P(1*nwet+1:2*nwet,tindx);
+par.DOP = OUT.P(2*nwet+1:3*nwet,tindx);
+par.DOPl= OUT.P(3*nwet+1:4*nwet,tindx);
 
 
 par.DIC    = OUT.C(1:nwet,tindx);
@@ -47,3 +52,8 @@ par.DIC    = OUT.C(1:nwet,tindx);
     DOCl = M3d+nan ;  DOCl(iwet) = par.DOCl ;
     DOCr = M3d+nan ;  DOCr(iwet) = par.DOCr ;
         % 
+
+        sum(par.POP(isrf).*dVt(iwet(isrf)))
+
+        %% 
+ XX = load('../output/PNAS2025_transient/transient_test_6h_2d_5d_from_reoptNature_with_dop_GM15_npp1_CTL_He_PC_diagnostics.mat')

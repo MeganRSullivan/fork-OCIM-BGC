@@ -23,7 +23,7 @@ addpath('../src/')
 
 % test1_eqPcycle_with_DOPl_gamma1pct_from_reoptNature_with_dop_GM15_npp1
 
-VerName = 'transient_test_6h_2d_5d_from_reoptNature_with_dop_GM15_npp1_'; 		% optional version name. leave as an empty character array
+VerName = 'transient_151y_from_reoptNature_with_dop_GM15_npp1_'; 		% optional version name. leave as an empty character array
 					% or add a name ending with an underscore
 VerNum = '';		% optional version number for testing
 
@@ -51,7 +51,7 @@ par.nl = 2; % number of layers in the model euphotic zone (doesn't change)
 
 Gtest = off ; 
 Htest = off ;
-par.saveall = true; 
+par.saveall = false; 
 par.save_stride = 12;   % monthly saves by default
 
 par.optim   = off ; 
@@ -261,8 +261,24 @@ Xin.O2 = [par.O2];
 
 
 
-%-------------------set up timestepper -------------------------
-spa = par.spa;
+%% -------------------set up timestepper -------------------------
+spd = 60*60*24; 
+spa  = 365*spd ;
+mmC = 12.0;
+mmP = 31.0;
+
+M3dsurf = M3d ;             % make surface mask (ocn grid cells in contact with atm) 
+M3dsurf(:,:,2:end) = 0 ;
+Msurf = M3dsurf(iwet);
+isrf = find(M3dsurf(iwet)) ;
+
+M3dEZ = M3d ;             % make surface mask (ocn grid cells in contact with atm) 
+M3dEZ(:,:,3:end) = 0 ;
+iEZ = find(M3dEZ(iwet)) ;
+
+M3dDeep = M3d;
+M3dDeep(:,:,1:2) = 0 ;
+iDeep = find(M3dDeep(iwet));
 
 %%
 % Default schedule
@@ -270,13 +286,13 @@ spa = par.spa;
 dt_size =        spa./[365*24  365     12       1        0.25   ];  % step sizes in seconds
 nsteps =              [ 24     364     50       20       30     ]; % number of steps for each size
 
-%                      6 hr      2 day   1 hr    2 day.  1 month  1 year   4 years  
-dt_size =        spa./[365*24/6  365/2   365*24  365/2     12       1        0.25   ];  % step sizes in seconds
-nsteps =              [ 4        364/2   24      364/2     50       20       30     ]; % number of steps for each size
+%                      6 hr      4 day   6 hr      4 day.  1 month  1 year   4 years  
+dt_size =        spa./[365*24/6  365/4   365*24/6  365/4     12       1        0.25   ];  % step sizes in seconds
+nsteps =              [ 4        91        4       364/4     48       45       25     ]; % number of steps for each size
 
 %% test run
-dt_size =       spa./[365*24/6  365/2  365/5   ];  % step sizes in seconds
-nsteps =              [ 2        2     2]; % number of steps for each size
+%dt_size =       spa./[365*24/6  365/2  365/5   ];  % step sizes in seconds
+%nsteps =              [ 2        2     2]; % number of steps for each size
 
 Nstep_save = 10; % Number of steps between saving output
 
@@ -295,17 +311,30 @@ tmp = zeros(1,total_nsteps);
 Tout = zeros(1,total_nsteps);
 pco2atmout = zeros(1,total_nsteps);
 Diags.Tout = Tout ;
-Diags.pco2atm = pco2atmout ;
-Diags.totalDIC = tmp; 
 Diags.PNPP = tmp;
 Diags.CNPP_nolabile = tmp;
+Diags.pco2atm = pco2atmout ;
+Diags.totalDIC = tmp; 
+Diags.totalDICdeep = tmp;
+Diags.totalDICsurf = tmp;
+Diags.totalDOC = tmp;
+Diags.totalDOCl = tmp;
+Diags.totalDOCr = tmp;
+Diags.totalPOC = tmp;
+Diags.totalPIC = tmp;
+Diags.totalDIP = tmp; 
+Diags.totalDIPdeep = tmp;  
+Diags.totalDIPsurf = tmp;
+Diags.totalPOP = tmp; 
+Diags.totalDOP = tmp; 
+Diags.totalDOPl = tmp; 
 
 
 % initialize output structure
-    %if par.saveall
-        OUT.P = zeros(length(Xin.P),total_nsteps); 
-        OUT.C = zeros(length(Xin.C),total_nsteps); 
-    %end
+if par.saveall
+    OUT.P = zeros(length(Xin.P),total_nsteps); 
+    OUT.C = zeros(length(Xin.C),total_nsteps); 
+end
 
 
 
@@ -324,8 +353,7 @@ t0 = 0;
 
 %% change npp to simulate fertilization.
 % calculate NPP at steady state
-    mmC = 12;
-    spd = 60*60*24; 
+    
 
     LAM = 0*M3d;
     for ji = 1 : par.nl
@@ -457,7 +485,7 @@ t0 = 0;
 
 % set up iteration counter 
 t = t0;
-global_step = 1; % global step counter for saving
+global_step = 0; % global step counter for saving
 for dt_idx = 1:length(dt_size)
     dt = dt_size(dt_idx);
     n_substeps = nsteps(dt_idx);
@@ -480,6 +508,9 @@ for dt_idx = 1:length(dt_size)
     if dt_idx <3                  
         % if fertilization == on, increase P uptake by enough to draw down surface DIP in S.O.
         par.Lambda(MSKS.HNLC) = 1.5*par.Lambda(MSKS.HNLC);
+        fprintf('...Increase Lambda in HNLCs by 50 percent from steady state model\n')
+    else
+        fprintf('...Same Lambda as steady state model\n')
     end
     % set up time stepper for P and C (only need to factor trapezoid matrix once for each step size dt)
     % run Peqn
@@ -584,8 +615,34 @@ for dt_idx = 1:length(dt_size)
         totalDIC = sum(par.DIC.*par.dVt(iwet).*1e-3)*12*1e-15; % units = Pg C
 
         Diags.totalDIC(global_step) = totalDIC;
+        Diags.totalDICsurf(global_step) = sum(par.DIC(iEZ).*dVt(iwet(iEZ)))*mmC*1e-3*1e-15; %Pg DIC
+        Diags.totalDICdeep(global_step) = sum(par.DIC(iDeep).*dVt(iwet(iDeep)))*mmC*1e-3*1e-15; %Pg DIC
+     
+        % calculate total POP in euphotic zone
+        %totalPOPsurf = sum(par.POP(iEZ).*dVt(iwet(iEZ)))*mmP*1e-3*1e-15; %Pg POP
 
-        fprintf('t= %10.2f, Ocn: totalDIC = %11.4e Pg C ; Atm pCO2 = %10.3f ppm \n',t/spd, totalDIC, par.pco2atm)
+        % calculate total POC in euphotic zone
+        %Diags.totalPOCsurf(global_step) = sum(par.POC(iEZ).*dVt(iwet(iEZ)))*mmC*1e-3*1e-15; %Pg POC
+
+        Diags.totalDOC(global_step) = sum(par.DOC.*dVt(iwet))*mmC*1e-3*1e-15; %Pg DOC
+        Diags.totalDOCl(global_step) = sum(par.DOCl.*dVt(iwet))*mmC*1e-3*1e-15; %Pg DOC
+        Diags.totalDOCr(global_step) = sum(par.DOCr.*dVt(iwet))*mmC*1e-3*1e-15; %Pg DOC
+        Diags.totalPOC(global_step) = sum(par.POC.*dVt(iwet))*mmC*1e-3*1e-15; %Pg POC
+        Diags.totalPIC(global_step) = sum(par.PIC.*dVt(iwet))*mmC*1e-3*1e-15; %Pg PIC
+
+        % calculate surface DIP
+        Diags.totalDIP(global_step) = sum(par.DIP.*dVt(iwet))*mmP*1e-3*1e-15 ;
+        Diags.totalDIPsurf(global_step) = sum(par.DIP(iEZ).*dVt(iwet(iEZ)))*mmP*1e-3*1e-15; %Pg DIP
+        Diags.totalDIPdeep(global_step) = sum(par.DIP(iDeep).*dVt(iwet(iDeep)))*mmP*1e-3*1e-15; %Pg DIP
+        Diags.totalPOP(global_step) = sum(par.POP.*dVt(iwet))*mmP*1e-3*1e-15; %Pg POP
+        Diags.totalDOP(global_step) = sum(par.DOP.*dVt(iwet))*mmP*1e-3*1e-15; %Pg DOP
+        Diags.totalDOPl(global_step) = sum(par.DOPl.*dVt(iwet))*mmP*1e-3*1e-15; %Pg DOPl
+
+        % concise diagnostic printout
+        fprintf('t=%6.1f d | pCO2=%6.2f ppm | totalDIC=%8.3f PgC | PNPP=%6.3f PgP/yr | CNPP_nolab=%6.3f PgC/yr | DIP_surf=%6.3e PgP\n', ...
+            t/spd, par.pco2atm, totalDIC, Diags.PNPP(global_step), Diags.CNPP_nolabile(global_step), Diags.totalDIPsurf(global_step));
+
+        % fprintf('t= %10.2f, Ocn: totalDIC = %11.4e Pg C ; Atm pCO2 = %10.3f ppm \n',t/spd, totalDIC, par.pco2atm)
 
     end
     toc
@@ -596,9 +653,10 @@ end
 fprintf('saving diagnostics to file: %s \n',par.fname_diags)
 save(par.fname_diags,"Diags","Tout","dt_size","nsteps")
 
-fprintf('saving model solution to file: %s \n',par.fname)
-save(par.fname, 'Tout','OUT','-v7.3');
-
+if par.saveall
+    fprintf('saving model solution to file: %s \n',par.fname)
+    save(par.fname, 'Tout','OUT','-v7.3');
+end
 
 
 
