@@ -1,4 +1,4 @@
-function [par, C, Cx, Cxx] = eqCcycle_v2(x, par)
+function [par, C, Cx, Cxx] = eqCcycleAtm(x, par)
 % ip is the mapping from x to parameter names (see switch below)
 % output: C is model prediction of DIP,POP,and DOP
 % output: F partial derivative of P model w.r.t. model parameters x

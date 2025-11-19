@@ -81,53 +81,53 @@ par.docscale = 1.0 ; % factor to weigh DOC in the objective function
 par.alkscale = 1.0 ;
 par.o2scale  = 1.0 ;
 % P model parameters
-par.opt_sigP  = on ; 
-par.opt_Q10P  = on ;
-par.opt_kdP   = on ;
-par.opt_bP_T  = on ; 
-par.opt_bP    = on ;
-par.opt_alpha = on ;
-par.opt_beta  = on ;
+par.opt_sigP  = off ; 
+par.opt_Q10P  = off ;
+par.opt_kdP   = off ;
+par.opt_bP_T  = off ; 
+par.opt_bP    = off ;
+par.opt_alpha = off ;
+par.opt_beta  = off ;
 % C model parameter
-par.opt_sigC  = on ; 
-par.opt_kru   = on ;
-par.opt_krd   = on ;
-par.opt_etau  = on ;
+par.opt_sigC  = off ; 
+par.opt_kru   = off ;
+par.opt_krd   = off ;
+par.opt_etau  = off ;
 par.opt_etad  = off ; %keep off
-par.opt_bC_T  = on ;
-par.opt_bC    = on ; 
-par.opt_d     = on ;
-par.opt_Q10C  = on ;
-par.opt_kdC   = on ; 
-par.opt_R_Si  = on ; 
-par.opt_rR    = on ; 
+par.opt_bC_T  = off ;
+par.opt_bC    = off ; 
+par.opt_d     = off ;
+par.opt_Q10C  = off ;
+par.opt_kdC   = off ; 
+par.opt_R_Si  = off ; 
+par.opt_rR    = off ; 
 % --- C:P function parameters -----
 % phosphate-dependent function parameters
 par.opt_cc    = off ;
 par.opt_dd    = off ; 
 % temperature-dependent function parameters
-par.opt_ccT   = on ; 
-par.opt_ddT   = on ;
+par.opt_ccT   = off ; 
+par.opt_ddT   = off ;
 % Trait-based Cellular Growth Model parameters
-par.opt_Q10Photo     = on ; % opt
-par.opt_fStorage     = on ; % opt
+par.opt_Q10Photo     = off ; % opt
+par.opt_fStorage     = off ; % opt
 par.opt_fRibE 	     = off ; 
-par.opt_kST0 	     = on ; % opt
+par.opt_kST0 	     = off ; % opt
 par.opt_PLip_PCutoff = off ;
 par.opt_PLip_scale   = off ;
-par.opt_PStor_rCutoff = on; % opt
+par.opt_PStor_rCutoff = off; % opt
 par.opt_PStor_scale  = off ;
-par.opt_alphaS       = on ; % opt
+par.opt_alphaS       = off ; % opt
 par.opt_gammaDNA	 = off ;
 % O model parameters
 par.opt_O2C_T = off ;
-par.opt_rO2C  = on ;
+par.opt_rO2C  = off ;
 % Si model parameters
-par.opt_dsi   = on  ;
+par.opt_dsi   = off  ;
 par.opt_at    = off ;
-par.opt_bt    = on  ;
-par.opt_aa    = on  ;
-par.opt_bb    = on  ;
+par.opt_bt    = off  ;
+par.opt_aa    = off  ;
+par.opt_bb    = off  ;
 %
 %-------------load data and set up parameters---------------------
 SetUp ;                      
@@ -481,6 +481,75 @@ t0 = 0;
 %% Time step model
 % Set up
 % solve/load steady state solution 
+fprintf('Solve eqPcycle...\n')
+[par, P] = eqPcycle(x0, par) ;
+    par.DIP = P(1:nwet);
+    par.POP = P(1*nwet+1:2*nwet);
+    par.DOP = P(2*nwet+1:3*nwet);
+    par.DOPl= P(3*nwet+1:4*nwet);
+
+fprintf('Solve eqCcycleAtm...\n');
+%[par, C, Cx, Cxx] = eqCcycle_v2(x, par)
+[par, C] = eqCcycleAtm(x0, par);
+    par.DIC    = C(1:nwet);
+    par.POC    = C(1*nwet+1:2*nwet);
+    par.DOC    = C(2*nwet+1:3*nwet);
+    par.PIC    = C(3*nwet+1:4*nwet);
+    par.ALK    = C(4*nwet+1:5*nwet);
+    par.DOCl   = C(5*nwet+1:6*nwet);
+    par.DOCr   = C(6*nwet+1:7*nwet);
+    par.pco2atm= C(7*nwet+1);
+% check that eqCcycleAtm solution matches eqCcycle_v2 solution for DIC, POC, DOC, PIC, ALK, DOCl, DOCr
+    try
+        % call eqCcycle_v2 (signature used in this repo: [par,C,...] = eqCcycle_v2(x,par))
+        [par_tmp, C_v2] = eqCcycle_v2(x0, par);
+    catch ME
+        warning('Could not run eqCcycle_v2: %s', ME.message);
+        C_v2 = [];
+    end
+
+    if ~isempty(C_v2)
+        species = {'DIC','POC','DOC','PIC','ALK','DOCl','DOCr'};
+        tol_rel = 1e-8;
+        tol_abs = 1e-12;
+        ok_all = true;
+        for k = 1:7
+            i1 = (k-1)*nwet + 1;
+            i2 = k*nwet;
+            A = C(i1:i2);
+            B = C_v2(i1:i2);
+            if numel(A) ~= numel(B)
+                warning('Size mismatch for %s: %d vs %d', species{k}, numel(A), numel(B));
+                ok_all = false;
+                continue
+            end
+            D = A - B;
+            maxabs = max(abs(D));
+            maxrel = max(abs(D)./(abs(B) + eps));
+            fprintf('%s: max abs diff = %.3e , max rel diff = %.3e\n', species{k}, maxabs, maxrel);
+            if maxabs > tol_abs && maxrel > tol_rel
+                warning('%s difference exceeds tolerances (abs>%.1e and rel>%.1e)', species{k}, tol_abs, tol_rel);
+                ok_all = false;
+            end
+        end
+        % compare atmospheric pCO2 if present
+        if numel(C) >= 7*nwet+1 && numel(C_v2) >= 7*nwet+1
+            ap = C(7*nwet+1);
+            bp = C_v2(7*nwet+1);
+            pd = ap - bp;
+            fprintf('pco2atm: abs diff = %.3e , rel diff = %.3e\n', abs(pd), abs(pd)./(abs(bp)+eps));
+            if abs(pd) > tol_abs && abs(pd)./(abs(bp)+eps) > tol_rel
+                warning('pco2atm difference exceeds tolerances');
+                ok_all = false;
+            end
+        end
+        if ok_all
+            fprintf('eqCcycleAtm and eqCcycle_v2 match within tolerances.\n');
+        else
+            fprintf('Differences found between eqCcycleAtm and eqCcycle_v2.\n');
+        end
+    end
+%%
 % check the data and par for steady-state drive the time stepping method 
 
 % change npp to simulate fertilization.
