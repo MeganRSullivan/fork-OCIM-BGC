@@ -23,7 +23,7 @@ addpath('../src/')
 
 % test1_eqPcycle_with_DOPl_gamma1pct_from_reoptNature_with_dop_GM15_npp1
 
-VerName = 'transient_test_steadystate_from_reoptNature_with_dop_GM15_npp1_'; 		% optional version name. leave as an empty character array
+VerName = 'transient_test_steadystate2_from_reoptNature_with_dop_GM15_npp1_'; 		% optional version name. leave as an empty character array
 					% or add a name ending with an underscore
 VerNum = '';		% optional version number for testing
 
@@ -87,7 +87,7 @@ par.opt_kdP   = off ;
 par.opt_bP_T  = off ; 
 par.opt_bP    = off ;
 par.opt_alpha = off ;
-par.opt_beta  = off ;
+par.opt_beta  = on ;
 % C model parameter
 par.opt_sigC  = off ; 
 par.opt_kru   = off ;
@@ -547,6 +547,7 @@ fprintf('Solve eqCcycleAtm...\n');
             fprintf('eqCcycleAtm and eqCcycle_v2 match within tolerances.\n');
         else
             fprintf('Differences found between eqCcycleAtm and eqCcycle_v2.\n');
+            keyboard;
         end
     end
 %%
