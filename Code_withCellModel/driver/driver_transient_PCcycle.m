@@ -19,11 +19,11 @@ format short
 
 % --- addpath to model code -----
 addpath('../src/')
-addpath('../src_reoptNature/')
+%addpath('../src_reoptNature/')
 
 % test1_eqPcycle_with_DOPl_gamma1pct_from_reoptNature_with_dop_GM15_npp1
 
-VerName = 'transient_test_steadystate_Ponly_reoptNature_noAtm_from_reoptNature_with_dop_GM15_npp1_'; 		% optional version name. leave as an empty character array
+VerName = 'transient_test_steadystate_Ponly_noAtm_from_reoptNature_with_dop_GM15_npp1_'; 		% optional version name. leave as an empty character array
 					% or add a name ending with an underscore
 VerNum = '';		% optional version number for testing
 
@@ -51,7 +51,7 @@ par.nl = 2; % number of layers in the model euphotic zone (doesn't change)
 
 Gtest = off ; 
 Htest = off ;
-par.saveall = false; 
+par.saveall = true; 
 par.save_stride = 12;   % monthly saves by default
 
 par.optim   = off ; 
@@ -509,6 +509,12 @@ fprintf('Solve eqPcycle...\n')
     try
         % call eqCcycle_v2 (signature used in this repo: [par,C,...] = eqCcycle_v2(x,par))
         fprintf('Solve eqCcycle_v2...\n');
+        if isfile('../output/PNAS2025_transient/transient_test_steadystate_Ponly_reoptNature_noAtm_from_reoptNature_with_dop_GM15_npp1__par.mat')
+            fprintf('Loading presaved par file for eqCcycle_v2...\n');
+            load('../output/PNAS2025_transient/transient_test_steadystate_Ponly_reoptNature_noAtm_from_reoptNature_with_dop_GM15_npp1__par.mat','par');
+            GC  = [par.DIC; par.POC; par.DOC; par.PIC; ...
+                   par.ALK; par.DOCl; par.DOCr];
+        else
         GC  = [par.DIC; par.POC; par.DOC; par.PIC; ...
            par.ALK; par.DOCl; par.DOCr];
         
@@ -542,6 +548,7 @@ fprintf('Solve eqPcycle...\n')
         end
         
         par = par_tmp; 
+    end
 
     catch ME
         warning('Could not run eqCcycle_v2: %s', ME.message);
