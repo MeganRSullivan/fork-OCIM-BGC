@@ -23,7 +23,7 @@ addpath('../src/')
 
 % test1_eqPcycle_with_DOPl_gamma1pct_from_reoptNature_with_dop_GM15_npp1
 
-VerName = 'transient_test_steadystate3_from_reoptNature_with_dop_GM15_npp1_'; 		% optional version name. leave as an empty character array
+VerName = 'transient_test_steadystate_noAtm_from_reoptNature_with_dop_GM15_npp1_'; 		% optional version name. leave as an empty character array
 					% or add a name ending with an underscore
 VerNum = '';		% optional version number for testing
 
@@ -258,7 +258,7 @@ par.DOCr= data.DOCr(iwet);
 par.O2  = data.O2(iwet);
 
 Xin.P = [par.DIP;par.POP;par.DOP;par.DOPl];
-Xin.C = [par.DIC;par.POC;par.DOC;par.PIC;par.ALK;par.DOCl;par.DOCr; par.pco2atm];
+Xin.C = [par.DIC;par.POC;par.DOC;par.PIC;par.ALK;par.DOCl;par.DOCr]; %; par.pco2atm];
 Xin.O2 = [par.O2];
 
 
@@ -293,8 +293,8 @@ dt_size =        spa./[365*24/6  365/4   365*24/6  365/4     12       1        0
 nsteps =              [ 4        91        4       364/4     48       45       25     ]; % number of steps for each size
 
 %% test run
-dt_size =       spa./[365*24/6  365/4  12    1    0.25];  % step sizes in seconds
-nsteps =              [ 8        91    48    50   25]; % number of steps for each size
+dt_size =       spa./[365*24    365    12    1    0.25];  % step sizes in seconds
+nsteps =              [ 24      179    48    50   25]; % number of steps for each size
 
 Nstep_save = 10; % Number of steps between saving output
 
@@ -488,6 +488,23 @@ fprintf('Solve eqPcycle...\n')
     par.DOP = P(2*nwet+1:3*nwet);
     par.DOPl= P(3*nwet+1:4*nwet);
 
+    % check if P(1:4*nwet) equals Xin.P(1:4*nwet)
+    fprintf('Comparing P to Xin.P...\n');
+    if numel(P) >= 4*nwet && numel(Xin.P) >= 4*nwet
+        A = P(1:4*nwet);
+        B = Xin.P(1:4*nwet);
+        if isequal(A,B)
+        fprintf('P(1:4*nwet) exactly equals Xin.P(1:4*nwet)\n');
+        else
+        D = A - B;
+        maxabs = max(abs(D));
+        maxrel = max(abs(D) ./ (abs(B) + eps));
+        fprintf('P vs Xin.P: max abs diff = %.3e, max rel diff = %.3e\n', maxabs, maxrel);
+        end
+    else
+        warning('P or Xin.P does not contain 4*nwet elements (have %d and %d)', numel(P), numel(Xin.P));
+    end
+
     % check that eqCcycleAtm solution matches eqCcycle_v2 solution for DIC, POC, DOC, PIC, ALK, DOCl, DOCr
     try
         % call eqCcycle_v2 (signature used in this repo: [par,C,...] = eqCcycle_v2(x,par))
@@ -524,69 +541,70 @@ fprintf('Solve eqPcycle...\n')
             warning('C_v2 or Xin.C does not contain 7*nwet elements (have %d and %d)', numel(C_v2), numel(Xin.C));
         end
         
+        par = par_tmp; 
 
     catch ME
         warning('Could not run eqCcycle_v2: %s', ME.message);
         C_v2 = [];
     end
 
-fprintf('Solve eqCcycleAtm...\n');
-GC  = [par.DIC; par.POC; par.DOC; par.PIC; ...
-           par.ALK; par.DOCl; par.DOCr; par.pco2atm];
-%[par, C, Cx, Cxx] = eqCcycle_v2(x, par)
-[par, C] = eqCcycleAtm(x0, par);
-    par.DIC    = C(1:nwet);
-    par.POC    = C(1*nwet+1:2*nwet);
-    par.DOC    = C(2*nwet+1:3*nwet);
-    par.PIC    = C(3*nwet+1:4*nwet);
-    par.ALK    = C(4*nwet+1:5*nwet);
-    par.DOCl   = C(5*nwet+1:6*nwet);
-    par.DOCr   = C(6*nwet+1:7*nwet);
-    par.pco2atm= C(7*nwet+1);
+% fprintf('Solve eqCcycleAtm...\n');
+% GC  = [par.DIC; par.POC; par.DOC; par.PIC; ...
+%            par.ALK; par.DOCl; par.DOCr; par.pco2atm];
+% %[par, C, Cx, Cxx] = eqCcycle_v2(x, par)
+% [par, C] = eqCcycleAtm(x0, par);
+%     par.DIC    = C(1:nwet);
+%     par.POC    = C(1*nwet+1:2*nwet);
+%     par.DOC    = C(2*nwet+1:3*nwet);
+%     par.PIC    = C(3*nwet+1:4*nwet);
+%     par.ALK    = C(4*nwet+1:5*nwet);
+%     par.DOCl   = C(5*nwet+1:6*nwet);
+%     par.DOCr   = C(6*nwet+1:7*nwet);
+%     par.pco2atm= C(7*nwet+1);
 
 
-    if ~isempty(C_v2)
-        species = {'DIC','POC','DOC','PIC','ALK','DOCl','DOCr'};
-        tol_rel = 1e-8;
-        tol_abs = 1e-12;
-        ok_all = true;
-        for k = 1:7
-            i1 = (k-1)*nwet + 1;
-            i2 = k*nwet;
-            A = C(i1:i2);
-            B = C_v2(i1:i2);
-            if numel(A) ~= numel(B)
-                warning('Size mismatch for %s: %d vs %d', species{k}, numel(A), numel(B));
-                ok_all = false;
-                continue
-            end
-            D = A - B;
-            maxabs = max(abs(D));
-            maxrel = max(abs(D)./(abs(B) + eps));
-            fprintf('%s: max abs diff = %.3e , max rel diff = %.3e\n', species{k}, maxabs, maxrel);
-            if maxabs > tol_abs && maxrel > tol_rel
-                warning('%s difference exceeds tolerances (abs>%.1e and rel>%.1e)', species{k}, tol_abs, tol_rel);
-                ok_all = false;
-            end
-        end
-        % compare atmospheric pCO2 if present
-        if numel(C) >= 7*nwet+1 && numel(C_v2) >= 7*nwet+1
-            ap = C(7*nwet+1);
-            bp = C_v2(7*nwet+1);
-            pd = ap - bp;
-            fprintf('pco2atm: abs diff = %.3e , rel diff = %.3e\n', abs(pd), abs(pd)./(abs(bp)+eps));
-            if abs(pd) > tol_abs && abs(pd)./(abs(bp)+eps) > tol_rel
-                warning('pco2atm difference exceeds tolerances');
-                ok_all = false;
-            end
-        end
-        if ok_all
-            fprintf('eqCcycleAtm and eqCcycle_v2 match within tolerances.\n');
-        else
-            fprintf('Differences found between eqCcycleAtm and eqCcycle_v2.\n');
-            keyboard;
-        end
-    end
+%     if ~isempty(C_v2)
+%         species = {'DIC','POC','DOC','PIC','ALK','DOCl','DOCr'};
+%         tol_rel = 1e-8;
+%         tol_abs = 1e-12;
+%         ok_all = true;
+%         for k = 1:7
+%             i1 = (k-1)*nwet + 1;
+%             i2 = k*nwet;
+%             A = C(i1:i2);
+%             B = C_v2(i1:i2);
+%             if numel(A) ~= numel(B)
+%                 warning('Size mismatch for %s: %d vs %d', species{k}, numel(A), numel(B));
+%                 ok_all = false;
+%                 continue
+%             end
+%             D = A - B;
+%             maxabs = max(abs(D));
+%             maxrel = max(abs(D)./(abs(B) + eps));
+%             fprintf('%s: max abs diff = %.3e , max rel diff = %.3e\n', species{k}, maxabs, maxrel);
+%             if maxabs > tol_abs && maxrel > tol_rel
+%                 warning('%s difference exceeds tolerances (abs>%.1e and rel>%.1e)', species{k}, tol_abs, tol_rel);
+%                 ok_all = false;
+%             end
+%         end
+%         % compare atmospheric pCO2 if present
+%         if numel(C) >= 7*nwet+1 && numel(C_v2) >= 7*nwet+1
+%             ap = C(7*nwet+1);
+%             bp = C_v2(7*nwet+1);
+%             pd = ap - bp;
+%             fprintf('pco2atm: abs diff = %.3e , rel diff = %.3e\n', abs(pd), abs(pd)./(abs(bp)+eps));
+%             if abs(pd) > tol_abs && abs(pd)./(abs(bp)+eps) > tol_rel
+%                 warning('pco2atm difference exceeds tolerances');
+%                 ok_all = false;
+%             end
+%         end
+%         if ok_all
+%             fprintf('eqCcycleAtm and eqCcycle_v2 match within tolerances.\n');
+%         else
+%             fprintf('Differences found between eqCcycleAtm and eqCcycle_v2.\n');
+%             keyboard;
+%         end
+%     end
 %%
 % check the data and par for steady-state drive the time stepping method 
 
@@ -600,7 +618,8 @@ for dt_idx = 1:length(dt_size)
     n_substeps = nsteps(dt_idx);
     % load previous iteration solution
     Xin.P = [par.DIP;par.POP;par.DOP;par.DOPl];
-    Xin.C = [par.DIC;par.POC;par.DOC;par.PIC;par.ALK;par.DOCl;par.DOCr; par.pco2atm];
+    %Xin.C = [par.DIC;par.POC;par.DOC;par.PIC;par.ALK;par.DOCl;par.DOCr;par.pco2atm];
+    Xin.C = [par.DIC;par.POC;par.DOC;par.PIC;par.ALK;par.DOCl;par.DOCr];
     Xin.O2 = [par.O2];
 
     % Reset Lambda to simulate fertilization
@@ -637,8 +656,10 @@ for dt_idx = 1:length(dt_size)
     toc
 
     % run CeqnAtm
-    fprintf('...run CeqnAtm \n')
-    [F_C,J_C,par] = CeqnAtm(Xin.C, par);
+    % fprintf('...run CeqnAtm \n')
+    % [F_C,J_C,par] = CeqnAtm(Xin.C, par);
+    fprintf('...run Ceqn_v2 \n')
+    [F_C,J_C,par] = Ceqn_v2(Xin.C, par);
     % Evaluate RHS and Jacobian at current state (X, t)
     % Build trapezoidal matrices
     I_C  = speye(numel(Xin.C(:)));
@@ -659,7 +680,8 @@ for dt_idx = 1:length(dt_size)
 
         % load previous iteration solution
         Xin.P = [par.DIP;par.POP;par.DOP;par.DOPl];
-        Xin.C = [par.DIC;par.POC;par.DOC;par.PIC;par.ALK;par.DOCl;par.DOCr; par.pco2atm];
+        %Xin.C = [par.DIC;par.POC;par.DOC;par.PIC;par.ALK;par.DOCl;par.DOCr; par.pco2atm];
+        Xin.C = [par.DIC;par.POC;par.DOC;par.PIC;par.ALK;par.DOCl;par.DOCr];
         Xin.O2 = [par.O2];
 
         % run Peqn
@@ -675,7 +697,8 @@ for dt_idx = 1:length(dt_size)
         par.DOPl= Xout.P(3*nwet+1:4*nwet);
 
         % run CeqnAtm
-        [F_C,J_C,par] = CeqnAtm(Xin.C, par);
+        % [F_C,J_C,par] = CeqnAtm(Xin.C, par);
+        [F_C,J_C,par] = Ceqn_v2(Xin.C, par);
         % Right-hand side
         rhs_C = B_C*Xin.C - dt*F_C;
         Xout.C  = mfactor(A_Cfactored, rhs_C);
@@ -687,7 +710,7 @@ for dt_idx = 1:length(dt_size)
         par.ALK    = Xout.C(4*nwet+1:5*nwet);
         par.DOCl   = Xout.C(5*nwet+1:6*nwet);
         par.DOCr   = Xout.C(6*nwet+1:7*nwet);
-        par.pco2atm= Xout.C(7*nwet+1);  
+        %par.pco2atm= Xout.C(7*nwet+1);  
 
         
 
