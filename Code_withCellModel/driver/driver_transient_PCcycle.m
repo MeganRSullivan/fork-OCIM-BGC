@@ -23,7 +23,7 @@ addpath('../src/')
 
 % test1_eqPcycle_with_DOPl_gamma1pct_from_reoptNature_with_dop_GM15_npp1
 
-VerName = 'transient_test_steadystate2_from_reoptNature_with_dop_GM15_npp1_'; 		% optional version name. leave as an empty character array
+VerName = 'transient_test_steadystate3_from_reoptNature_with_dop_GM15_npp1_'; 		% optional version name. leave as an empty character array
 					% or add a name ending with an underscore
 VerNum = '';		% optional version number for testing
 
@@ -488,6 +488,24 @@ fprintf('Solve eqPcycle...\n')
     par.DOP = P(2*nwet+1:3*nwet);
     par.DOPl= P(3*nwet+1:4*nwet);
 
+    % check that eqCcycleAtm solution matches eqCcycle_v2 solution for DIC, POC, DOC, PIC, ALK, DOCl, DOCr
+    try
+        % call eqCcycle_v2 (signature used in this repo: [par,C,...] = eqCcycle_v2(x,par))
+        fprintf('Solve eqCcycle_v2...\n');
+        [par_tmp, C_v2] = eqCcycle_v2(x0, par);
+        par_tmp.DIC = C_v2(1:nwet);
+        par_tmp.POC = C_v2(1*nwet+1:2*nwet);
+        par_tmp.DOC = C_v2(2*nwet+1:3*nwet);
+        par_tmp.PIC = C_v2(3*nwet+1:4*nwet);
+        par_tmp.ALK = C_v2(4*nwet+1:5*nwet);
+        par_tmp.DOCl= C_v2(5*nwet+1:6*nwet);
+        par_tmp.DOCr= C_v2(6*nwet+1:7*nwet);
+        %par_tmp.pco2atm= C_v2(7*nwet+1);
+    catch ME
+        warning('Could not run eqCcycle_v2: %s', ME.message);
+        C_v2 = [];
+    end
+
 fprintf('Solve eqCcycleAtm...\n');
 %[par, C, Cx, Cxx] = eqCcycle_v2(x, par)
 [par, C] = eqCcycleAtm(x0, par);
@@ -499,14 +517,7 @@ fprintf('Solve eqCcycleAtm...\n');
     par.DOCl   = C(5*nwet+1:6*nwet);
     par.DOCr   = C(6*nwet+1:7*nwet);
     par.pco2atm= C(7*nwet+1);
-% check that eqCcycleAtm solution matches eqCcycle_v2 solution for DIC, POC, DOC, PIC, ALK, DOCl, DOCr
-    try
-        % call eqCcycle_v2 (signature used in this repo: [par,C,...] = eqCcycle_v2(x,par))
-        [par_tmp, C_v2] = eqCcycle_v2(x0, par);
-    catch ME
-        warning('Could not run eqCcycle_v2: %s', ME.message);
-        C_v2 = [];
-    end
+
 
     if ~isempty(C_v2)
         species = {'DIC','POC','DOC','PIC','ALK','DOCl','DOCr'};

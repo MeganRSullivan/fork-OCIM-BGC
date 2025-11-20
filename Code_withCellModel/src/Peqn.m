@@ -1,5 +1,5 @@
 function [F,FD,par] = Peqn(X, par)    
-% unpack some useful stuff
+%% unpack some useful stuff
     on = true; off = false;
     grd   = par.grd   ;
     M3d   = par.M3d   ;
@@ -112,5 +112,13 @@ function [F,FD,par] = Peqn(X, par)
     %FD = mfactor(cell2mat(Fp)) ; 
     % Jacobian matrix
     FD = cell2mat(Fp);
+%%
+    % Ftest = FD*X - RHS;
 
+    % % check that Ftest matches F
+    % err = norm(F - Ftest);
+    % if err > 1e-10
+    %     error('Peqn: Jacobian check failed');
+    % end
+%%
 end
