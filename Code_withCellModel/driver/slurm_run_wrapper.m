@@ -3,7 +3,7 @@
 % directly should suppress the command line prompts from appearing in the
 % output file
 clear all; close all; clc;
-diary logs/transient_test_steadystate_Ponly.out
+diary logs/transient_test_steadystate_Ponly_1hour.out
 %fprintf('----------------------------------- \n\n')
 dbstop if error
 date_start = datetime('now');

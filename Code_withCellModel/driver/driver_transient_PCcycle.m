@@ -23,7 +23,7 @@ addpath('../src/')
 
 % test1_eqPcycle_with_DOPl_gamma1pct_from_reoptNature_with_dop_GM15_npp1
 
-VerName = 'transient_test_steadystate_Ponly_noAtm_from_reoptNature_with_dop_GM15_npp1_'; 		% optional version name. leave as an empty character array
+VerName = 'transient_test_steadystate_Ponly_1h_noAtm_from_reoptNature_with_dop_GM15_npp1_'; 		% optional version name. leave as an empty character array
 					% or add a name ending with an underscore
 VerNum = '';		% optional version number for testing
 
@@ -51,7 +51,7 @@ par.nl = 2; % number of layers in the model euphotic zone (doesn't change)
 
 Gtest = off ; 
 Htest = off ;
-par.saveall = true; 
+par.saveall = false; 
 par.save_stride = 12;   % monthly saves by default
 
 par.optim   = off ; 
@@ -293,8 +293,8 @@ dt_size =        spa./[365*24/6  365/4   365*24/6  365/4     12       1        0
 nsteps =              [ 4        91        4       364/4     48       45       25     ]; % number of steps for each size
 
 %% test run
-dt_size =       spa./[365*24    365    12    ]; %1    0.25];  % step sizes in seconds
-nsteps =              [ 24      24     24    ]; %50   25]; % number of steps for each size
+dt_size =       spa./[365*24 ];  % 365    12    ]; %1    0.25];  % step sizes in seconds
+nsteps =              [ 800 ];   %   24     24    ]; %50   25]; % number of steps for each size
 
 Nstep_save = 10; % Number of steps between saving output
 
