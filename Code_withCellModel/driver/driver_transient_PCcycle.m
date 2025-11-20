@@ -710,7 +710,9 @@ for dt_idx = 1:length(dt_size)
         par.ALK    = Xout.C(4*nwet+1:5*nwet);
         par.DOCl   = Xout.C(5*nwet+1:6*nwet);
         par.DOCr   = Xout.C(6*nwet+1:7*nwet);
-        %par.pco2atm= Xout.C(7*nwet+1);  
+        if numel(Xout.C) >= 7*nwet+1
+            par.pco2atm= Xout.C(7*nwet+1);
+        end
 
         
 
