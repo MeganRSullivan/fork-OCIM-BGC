@@ -494,7 +494,10 @@ fprintf('Solve eqPcycle...\n')
         fprintf('Solve eqCcycle_v2...\n');
         GC  = [par.DIC(iwet); par.POC(iwet); par.DOC(iwet); par.PIC(iwet); ...
            par.ALK(iwet); par.DOCl(iwet); par.DOCr(iwet)];
+        
         [par_tmp, C_v2] = eqCcycle_v2(x0, par);
+        
+        fprintf('...eqCcycle_v2  done.\n');
         par_tmp.DIC = C_v2(1:nwet);
         par_tmp.POC = C_v2(1*nwet+1:2*nwet);
         par_tmp.DOC = C_v2(2*nwet+1:3*nwet);
@@ -503,6 +506,25 @@ fprintf('Solve eqPcycle...\n')
         par_tmp.DOCl= C_v2(5*nwet+1:6*nwet);
         par_tmp.DOCr= C_v2(6*nwet+1:7*nwet);
         %par_tmp.pco2atm= C_v2(7*nwet+1);
+
+        % check if C_v2(1:7*nwet) equals Xin.C(1:7*nwet)
+        fprintf('Comparing C_v2 to Xin.C...\n');
+        if numel(C_v2) >= 7*nwet && numel(Xin.C) >= 7*nwet
+            A = C_v2(1:7*nwet);
+            B = Xin.C(1:7*nwet);
+            if isequal(A,B)
+            fprintf('C_v2(1:7*nwet) exactly equals Xin.C(1:7*nwet)\n');
+            else
+            D = A - B;
+            maxabs = max(abs(D));
+            maxrel = max(abs(D) ./ (abs(B) + eps));
+            fprintf('C_v2 vs Xin.C: max abs diff = %.3e, max rel diff = %.3e\n', maxabs, maxrel);
+            end
+        else
+            warning('C_v2 or Xin.C does not contain 7*nwet elements (have %d and %d)', numel(C_v2), numel(Xin.C));
+        end
+        
+
     catch ME
         warning('Could not run eqCcycle_v2: %s', ME.message);
         C_v2 = [];
