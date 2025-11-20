@@ -23,7 +23,7 @@ addpath('../src/')
 
 % test1_eqPcycle_with_DOPl_gamma1pct_from_reoptNature_with_dop_GM15_npp1
 
-VerName = 'transient_test_steadystate_noAtm_from_reoptNature_with_dop_GM15_npp1_'; 		% optional version name. leave as an empty character array
+VerName = 'transient_test_steadystate_Ponly_noAtm_from_reoptNature_with_dop_GM15_npp1_'; 		% optional version name. leave as an empty character array
 					% or add a name ending with an underscore
 VerNum = '';		% optional version number for testing
 
@@ -51,7 +51,7 @@ par.nl = 2; % number of layers in the model euphotic zone (doesn't change)
 
 Gtest = off ; 
 Htest = off ;
-par.saveall = false; 
+par.saveall = true; 
 par.save_stride = 12;   % monthly saves by default
 
 par.optim   = off ; 
@@ -293,8 +293,8 @@ dt_size =        spa./[365*24/6  365/4   365*24/6  365/4     12       1        0
 nsteps =              [ 4        91        4       364/4     48       45       25     ]; % number of steps for each size
 
 %% test run
-dt_size =       spa./[365*24    365    12    1    0.25];  % step sizes in seconds
-nsteps =              [ 24      179    48    50   25]; % number of steps for each size
+dt_size =       spa./[365*24    365    12    ]; %1    0.25];  % step sizes in seconds
+nsteps =              [ 24      24     24    ]; %50   25]; % number of steps for each size
 
 Nstep_save = 10; % Number of steps between saving output
 
@@ -548,6 +548,10 @@ fprintf('Solve eqPcycle...\n')
         C_v2 = [];
     end
 
+    %save('temp_par_before_eqCcycleAtm.mat','par');
+    fprintf('save temporary par, after eqPcycle and eqCcyle_v2 to file: %s ...\n',par.fxpar);
+    save(par.fxpar,'par');
+
 % fprintf('Solve eqCcycleAtm...\n');
 % GC  = [par.DIC; par.POC; par.DOC; par.PIC; ...
 %            par.ALK; par.DOCl; par.DOCr; par.pco2atm];
@@ -655,20 +659,20 @@ for dt_idx = 1:length(dt_size)
     A_Pfactored = mfactor(A_P); 
     toc
 
-    % run CeqnAtm
-    % fprintf('...run CeqnAtm \n')
-    % [F_C,J_C,par] = CeqnAtm(Xin.C, par);
-    fprintf('...run Ceqn_v2 \n')
-    [F_C,J_C,par] = Ceqn_v2(Xin.C, par);
-    % Evaluate RHS and Jacobian at current state (X, t)
-    % Build trapezoidal matrices
-    I_C  = speye(numel(Xin.C(:)));
-    A_C  = I_C + 0.5*dt*J_C;
-    B_C  = I_C - 0.5*dt*J_C;
-    fprintf('...factor the big matrix... \n')
-    tic
-    A_Cfactored = mfactor(A_C);
-    toc
+    % % run CeqnAtm
+    % % fprintf('...run CeqnAtm \n')
+    % % [F_C,J_C,par] = CeqnAtm(Xin.C, par);
+    % fprintf('...run Ceqn_v2 \n')
+    % [F_C,J_C,par] = Ceqn_v2(Xin.C, par);
+    % % Evaluate RHS and Jacobian at current state (X, t)
+    % % Build trapezoidal matrices
+    % I_C  = speye(numel(Xin.C(:)));
+    % A_C  = I_C + 0.5*dt*J_C;
+    % B_C  = I_C - 0.5*dt*J_C;
+    % fprintf('...factor the big matrix... \n')
+    % tic
+    % A_Cfactored = mfactor(A_C);
+    % toc
 
     % start iterating through n_substeps for each dt
     tic
@@ -696,33 +700,32 @@ for dt_idx = 1:length(dt_size)
         par.DOP = Xout.P(2*nwet+1:3*nwet);
         par.DOPl= Xout.P(3*nwet+1:4*nwet);
 
-        % run CeqnAtm
-        % [F_C,J_C,par] = CeqnAtm(Xin.C, par);
-        [F_C,J_C,par] = Ceqn_v2(Xin.C, par);
-        % Right-hand side
-        rhs_C = B_C*Xin.C - dt*F_C;
-        Xout.C  = mfactor(A_Cfactored, rhs_C);
-        % update par with CeqnAtm solution
-        par.DIC    = Xout.C(1:nwet);
-        par.POC    = Xout.C(1*nwet+1:2*nwet);
-        par.DOC    = Xout.C(2*nwet+1:3*nwet);
-        par.PIC    = Xout.C(3*nwet+1:4*nwet);
-        par.ALK    = Xout.C(4*nwet+1:5*nwet);
-        par.DOCl   = Xout.C(5*nwet+1:6*nwet);
-        par.DOCr   = Xout.C(6*nwet+1:7*nwet);
-        if numel(Xout.C) >= 7*nwet+1
-            par.pco2atm= Xout.C(7*nwet+1);
-        end
+        % % run CeqnAtm
+        % % [F_C,J_C,par] = CeqnAtm(Xin.C, par);
+        % [F_C,J_C,par] = Ceqn_v2(Xin.C, par);
+        % % Right-hand side
+        % rhs_C = B_C*Xin.C - dt*F_C;
+        % Xout.C  = mfactor(A_Cfactored, rhs_C);
+        % % update par with CeqnAtm solution
+        % par.DIC    = Xout.C(1:nwet);
+        % par.POC    = Xout.C(1*nwet+1:2*nwet);
+        % par.DOC    = Xout.C(2*nwet+1:3*nwet);
+        % par.PIC    = Xout.C(3*nwet+1:4*nwet);
+        % par.ALK    = Xout.C(4*nwet+1:5*nwet);
+        % par.DOCl   = Xout.C(5*nwet+1:6*nwet);
+        % par.DOCr   = Xout.C(6*nwet+1:7*nwet);
+        % if numel(Xout.C) >= 7*nwet+1
+        %     par.pco2atm= Xout.C(7*nwet+1);
+        % end
 
         
 
         % save output at each time step
         if par.saveall
             OUT.P(:,global_step) = Xout.P;
-            OUT.C(:,global_step) = Xout.C;
+            %OUT.C(:,global_step) = Xout.C;
         else
-            % OUT{ii}.P = Xout.P;
-            % OUT{ii}.C = Xout.C;
+
         end
 
         % if ~par.saveall
