@@ -19,11 +19,11 @@ format short
 
 % --- addpath to model code -----
 addpath('../src/')
-%addpath('../src_reoptNature/')
+addpath('../src_reoptNature/')
 
 % test1_eqPcycle_with_DOPl_gamma1pct_from_reoptNature_with_dop_GM15_npp1
 
-VerName = 'transient_test_steadystate_Ponly_noAtm_from_reoptNature_with_dop_GM15_npp1_'; 		% optional version name. leave as an empty character array
+VerName = 'transient_test_steadystate_Ponly_reoptNature_noAtm_from_reoptNature_with_dop_GM15_npp1_'; 		% optional version name. leave as an empty character array
 					% or add a name ending with an underscore
 VerNum = '';		% optional version number for testing
 
@@ -51,7 +51,7 @@ par.nl = 2; % number of layers in the model euphotic zone (doesn't change)
 
 Gtest = off ; 
 Htest = off ;
-par.saveall = true; 
+par.saveall = false; 
 par.save_stride = 12;   % monthly saves by default
 
 par.optim   = off ; 
