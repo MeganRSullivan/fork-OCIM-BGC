@@ -30,13 +30,13 @@ function [F,FD,par] = CeqnAtm(X, par)
 
     
     % ALKbar  = par.ALKbar  ;
-    % sDICbar = par.sDICbar ;
-    % sALKbar = par.sALKbar ;
+    sDICbar = par.sDICbar ;
+    sALKbar = par.sALKbar ;
     ALKbar  = par.ALKbar  ;
-	sDICbar = sum(DIC(iwet(isrf)).*dVt(iwet(isrf)))./sum(dVt(iwet(isrf))) ;
-    sALKbar = sum(ALK(iwet(isrf)).*dVt(iwet(isrf)))./sum(dVt(iwet(isrf))) ;
-	par.sDICbar = sDICbar ;
-	par.sALKbar = sALKbar ;
+	% sDICbar = sum(DIC(iwet(isrf)).*dVt(iwet(isrf)))./sum(dVt(iwet(isrf))) ;
+    % sALKbar = sum(ALK(iwet(isrf)).*dVt(iwet(isrf)))./sum(dVt(iwet(isrf))) ;
+	% par.sDICbar = sDICbar ;
+	% par.sALKbar = sALKbar ;
 
     PO4 = par.po4obs(iwet) ;    % phosphate obs
     Tz = par.Tz;                % temperature obs scaled between zero and 1.
@@ -226,6 +226,14 @@ function [F,FD,par] = CeqnAtm(X, par)
 	% FD = mfactor(cell2mat(Jc)) ; 
 	% toc
     FD = cell2mat(Jc); 
+
+    % Ftest = FD*X - RHS;
+
+    % % check that Ftest matches F
+    % err = norm(F - Ftest);
+    % if err > 1e-10
+    %     error('CeqnAtm: Jacobian check failed');
+    % end
 
     end 
     
