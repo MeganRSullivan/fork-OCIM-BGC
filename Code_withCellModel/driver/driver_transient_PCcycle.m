@@ -627,23 +627,24 @@ for dt_idx = 1:length(dt_size)
     Xin.O2 = [par.O2];
 
     % Reset Lambda to simulate fertilization
-    par.Lambda = M3d*0 ;
-    [nx,ny,nz] = size(M3d) ;
-    for jj = 1 : nx
-        for ii = 1 : ny     
-            par.Lambda(jj,ii,1) = 1./(1e-6+DIP_obs(jj,ii,1)) ;      % unit: [1/(mmolP/m^3)]
-            par.Lambda(jj,ii,2) = 1./(1e-6+DIP_obs(jj,ii,2)) ;
-        end
-    end
+    % par.Lambda = M3d*0 ;
+    % [nx,ny,nz] = size(M3d) ;
+    % for jj = 1 : nx
+    %     for ii = 1 : ny     
+    %         par.Lambda(jj,ii,1) = 1./(1e-6+DIP_obs(jj,ii,1)) ;      % unit: [1/(mmolP/m^3)]
+    %         par.Lambda(jj,ii,2) = 1./(1e-6+DIP_obs(jj,ii,2)) ;
+    %     end
+    % end
 
-    %increase lambda by 50% in HNLC regions, for first year (2 )
-    if dt_idx <0                  
-        % if fertilization == on, increase P uptake by enough to draw down surface DIP in S.O.
-        par.Lambda(MSKS.HNLC) = 1.5*par.Lambda(MSKS.HNLC);
-        fprintf('...Increase Lambda in HNLCs by 50 percent from steady state model\n')
-    else
-        fprintf('...Same Lambda as steady state model\n')
-    end
+    % %increase lambda by 50% in HNLC regions, for first year (2 )
+    % if dt_idx <0                  
+    %     % if fertilization == on, increase P uptake by enough to draw down surface DIP in S.O.
+    %     par.Lambda(MSKS.HNLC) = 1.5*par.Lambda(MSKS.HNLC);
+    %     fprintf('...Increase Lambda in HNLCs by 50 percent from steady state model\n')
+    % else
+    %     fprintf('...Same Lambda as steady state model\n')
+    % end
+
     % set up time stepper for P and C (only need to factor trapezoid matrix once for each step size dt)
     % run Peqn
     fprintf('\ndt = %.1f \n', dt)
