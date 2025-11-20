@@ -492,8 +492,8 @@ fprintf('Solve eqPcycle...\n')
     try
         % call eqCcycle_v2 (signature used in this repo: [par,C,...] = eqCcycle_v2(x,par))
         fprintf('Solve eqCcycle_v2...\n');
-        GC  = [par.DIC(iwet); par.POC(iwet); par.DOC(iwet); par.PIC(iwet); ...
-           par.ALK(iwet); par.DOCl(iwet); par.DOCr(iwet)];
+        GC  = [par.DIC; par.POC; par.DOC; par.PIC; ...
+           par.ALK; par.DOCl; par.DOCr];
         
         [par_tmp, C_v2] = eqCcycle_v2(x0, par);
         
@@ -531,8 +531,8 @@ fprintf('Solve eqPcycle...\n')
     end
 
 fprintf('Solve eqCcycleAtm...\n');
-GC  = [par.DIC(iwet); par.POC(iwet); par.DOC(iwet); par.PIC(iwet); ...
-           par.ALK(iwet); par.DOCl(iwet); par.DOCr(iwet); par.pco2atm];
+GC  = [par.DIC; par.POC; par.DOC; par.PIC; ...
+           par.ALK; par.DOCl; par.DOCr; par.pco2atm];
 %[par, C, Cx, Cxx] = eqCcycle_v2(x, par)
 [par, C] = eqCcycleAtm(x0, par);
     par.DIC    = C(1:nwet);
