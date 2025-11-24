@@ -23,7 +23,7 @@ addpath('../src/')
 
 % test1_eqPcycle_with_DOPl_gamma1pct_from_reoptNature_with_dop_GM15_npp1
 
-VerName = 'transient_test_steadystate_PC_1h_Atm_from_reoptNature_with_dop_GM15_npp1_'; 		% optional version name. leave as an empty character array
+VerName = 'transient_test_PC_Atm_from_reoptNature_with_dop_GM15_npp1_'; 		% optional version name. leave as an empty character array
 					% or add a name ending with an underscore
 VerNum = '';		% optional version number for testing
 
@@ -292,9 +292,13 @@ nsteps =              [ 24     364     50       20       30     ]; % number of s
 dt_size =        spa./[365*24/6  365/4   365*24/6  365/4     12       1        0.25   ];  % step sizes in seconds
 nsteps =              [ 4        91        4       364/4     48       45       25     ]; % number of steps for each size
 
+%                      1 hr      1 day   1 hr     1 day.  1 month  1 year   4 years  
+dt_size =        spa./[365*24    365     365*24   365     12        1        0.25   ];  % step sizes in seconds
+nsteps =              [ 240      355     240      355     120       90       25     ]; % number of steps for each size
+
 %% test run
-dt_size =       spa./[365*24 ];  % 365    12    ]; %1    0.25];  % step sizes in seconds
-nsteps =              [ 800 ];   %   24     24    ]; %50   25]; % number of steps for each size
+%dt_size =       spa./[365*24    365]; %    12    ]; %1    0.25];  % step sizes in seconds
+%nsteps =              [ 240     355   ];  %24    ]; %50   25]; % number of steps for each size
 
 Nstep_save = 10; % Number of steps between saving output
 
@@ -659,23 +663,23 @@ for dt_idx = 1:length(dt_size)
     Xin.O2 = [par.O2];
 
     % Reset Lambda to simulate fertilization
-    % par.Lambda = M3d*0 ;
-    % [nx,ny,nz] = size(M3d) ;
-    % for jj = 1 : nx
-    %     for ii = 1 : ny     
-    %         par.Lambda(jj,ii,1) = 1./(1e-6+DIP_obs(jj,ii,1)) ;      % unit: [1/(mmolP/m^3)]
-    %         par.Lambda(jj,ii,2) = 1./(1e-6+DIP_obs(jj,ii,2)) ;
-    %     end
-    % end
+    par.Lambda = M3d*0 ;
+    [nx,ny,nz] = size(M3d) ;
+    for jj = 1 : nx
+        for ii = 1 : ny     
+            par.Lambda(jj,ii,1) = 1./(1e-6+DIP_obs(jj,ii,1)) ;      % unit: [1/(mmolP/m^3)]
+            par.Lambda(jj,ii,2) = 1./(1e-6+DIP_obs(jj,ii,2)) ;
+        end
+    end
 
-    % %increase lambda by 50% in HNLC regions, for first year (2 )
-    % if dt_idx <0                  
-    %     % if fertilization == on, increase P uptake by enough to draw down surface DIP in S.O.
-    %     par.Lambda(MSKS.HNLC) = 1.5*par.Lambda(MSKS.HNLC);
-    %     fprintf('...Increase Lambda in HNLCs by 50 percent from steady state model\n')
-    % else
-    %     fprintf('...Same Lambda as steady state model\n')
-    % end
+    %increase lambda by 50% in HNLC regions, for first year (2 )
+    if dt_idx <3                  
+        % if fertilization == on, increase P uptake by enough to draw down surface DIP in S.O.
+        par.Lambda(MSKS.HNLC) = 1.5*par.Lambda(MSKS.HNLC);
+        fprintf('...Increase Lambda in HNLCs by 50 percent from steady state model\n')
+    else
+        fprintf('...Same Lambda as steady state model\n')
+    end
 
     % set up time stepper for P and C (only need to factor trapezoid matrix once for each step size dt)
     % run Peqn
