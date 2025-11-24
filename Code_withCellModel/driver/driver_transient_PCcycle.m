@@ -522,7 +522,14 @@ fprintf('Solve eqPcycle...\n')
             fprintf('Loading presaved par file for eqCcycle_v2...\n');
             %Code_withCellModel/output/PNAS2025_transient/transient_test_steadystate_Conly_1h_noAtm_from_reoptNature_with_dop_GM15_npp1_CTL_He_PC_par.mat
             %../output/PNAS2025_transient/transient_test_steadystate_Conly_1h_Atm_from_reoptNature_with_dop_GM15_npp1_CTL_He_PC_par.mat ...
-            load('../output/PNAS2025_transient/transient_test_steadystate_Conly_1h_Atm_from_reoptNature_with_dop_GM15_npp1_CTL_He_PC_par.mat','par');
+            par_tmp = load('../output/PNAS2025_transient/transient_test_steadystate_Conly_1h_Atm_from_reoptNature_with_dop_GM15_npp1_CTL_He_PC_par.mat','par');
+            par.DIC = par_tmp.par.DIC;
+            par.POC = par_tmp.par.POC;
+            par.DOC = par_tmp.par.DOC;
+            par.PIC = par_tmp.par.PIC;
+            par.ALK = par_tmp.par.ALK;
+            par.DOCl= par_tmp.par.DOCl;
+            par.DOCr= par_tmp.par.DOCr;
             GC  = [par.DIC; par.POC; par.DOC; par.PIC; ...
                    par.ALK; par.DOCl; par.DOCr];
         else
