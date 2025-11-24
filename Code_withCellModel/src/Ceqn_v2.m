@@ -1,4 +1,4 @@
-function [F,FD,par] = Ceqn_v2(X, par)    
+function [f,J,par] = Ceqn_v2(X, par)    
 % unpack some useful stuff
     on = true; off = false;
     grd   = par.grd   ;
@@ -122,6 +122,15 @@ function [F,FD,par] = Ceqn_v2(X, par)
 
     F   = [eq1; eq2; eq3; eq4; eq5; eq6; eq7];
 
+    f   = [(1-sigC-gamma)*RR*G*C2P - JgDIC + pme*sDICbar + par.Cnpp(iwet) ;...
+           - (1-sigC-gamma)*G*C2P; ...
+           - sigC*G*C2P; ...
+           - (1-sigC-gamma)*RR*G*C2P; ...
+           2*(1-sigC-gamma)*RR*G*C2P - N2C*par.Cnpp(iwet) ...
+                 + pme*sALKbar - kappa_g*ALKbar;...
+           - (par.Cnpp(iwet) - G*C2P); ...
+           zeros(nwet,1)];
+
     if nargout > 1
         % construct the LHS matrix for the offline model
         % disp('Preparing LHS and RHS matrix:')
@@ -186,5 +195,10 @@ function [F,FD,par] = Ceqn_v2(X, par)
         %tic 
 	    %FD = mfactor(cell2mat(Jc)) ; 
 	    %toc
-        FD = cell2mat(Jc) ;
+        %FD = cell2mat(Jc) ;
+
+        % Jacobian matrix
+        J = cell2mat(Jc);
+        % F = J*X + f;
+
     end 

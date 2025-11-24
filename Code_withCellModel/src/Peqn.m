@@ -1,4 +1,4 @@
-function [F,FD,par] = Peqn(X, par)    
+function [RHS,J,par] = Peqn(X, par)    
 %% unpack some useful stuff
     on = true; off = false;
     grd   = par.grd   ;
@@ -80,28 +80,28 @@ function [F,FD,par] = Peqn(X, par)
 
     % build Jacobian equations.
     % column 1 dF/dDIP
-    Fp{1,1} = TRdiv + alpha*L + kappa_g*I ;
-    Fp{2,1} = -(1-sigP-gamma)*alpha*L ;
-    Fp{3,1} = -sigP*alpha*L  ;
-    Fp{4,1} = -gamma*alpha*L  ;
+    Jp{1,1} = TRdiv + alpha*L + kappa_g*I ;
+    Jp{2,1} = -(1-sigP-gamma)*alpha*L ;
+    Jp{3,1} = -sigP*alpha*L  ;
+    Jp{4,1} = -gamma*alpha*L  ;
 
     % column 2 dF/dPOP
-    Fp{1,2} = -kappa_p*I      ;
-    Fp{2,2} = PFD + kappa_p*I ;
-    Fp{3,2} = 0*I             ;
-    Fp{4,2} = 0*I             ;
+    Jp{1,2} = -kappa_p*I      ;
+    Jp{2,2} = PFD + kappa_p*I ;
+    Jp{3,2} = 0*I             ;
+    Jp{4,2} = 0*I             ;
 
     % column 3 dF/dDOP
-    Fp{1,3} = -d0(kP)         ;
-    Fp{2,3} = 0*I ;
-    Fp{3,3} = TRdiv + d0(kP)  ;
-    Fp{4,3} = 0*I ;
+    Jp{1,3} = -d0(kP)         ;
+    Jp{2,3} = 0*I ;
+    Jp{3,3} = TRdiv + d0(kP)  ;
+    Jp{4,3} = 0*I ;
 
     % column 4 dF/dlDOP
-    Fp{1,4} = -kappa_l*I ;
-    Fp{2,4} = 0*I ;
-    Fp{3,4} = 0*I;
-    Fp{4,4} = TRdiv + kappa_l*I ;
+    Jp{1,4} = -kappa_l*I ;
+    Jp{2,4} = 0*I ;
+    Jp{3,4} = 0*I;
+    Jp{4,4} = TRdiv + kappa_l*I ;
 
     % right hand side of phosphate equations
     RHS = [kappa_g*DIPbar  ; ... 
@@ -109,11 +109,11 @@ function [F,FD,par] = Peqn(X, par)
            sparse(nwet,1)  ; ...
            sparse(nwet,1)] ;
 
-    %FD = mfactor(cell2mat(Fp)) ; 
+    %FD = mfactor(cell2mat(Jp)) ; 
     % Jacobian matrix
-    FD = cell2mat(Fp);
+    J = cell2mat(Jp);
 %%
-    % Ftest = FD*X - RHS;
+    % Ftest = J*X - RHS;
 
     % % check that Ftest matches F
     % err = norm(F - Ftest);
