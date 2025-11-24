@@ -294,7 +294,7 @@ nsteps =              [ 4        91        4       364/4     48       45       2
 
 %% test run
 dt_size =       spa./[365*24 ];  % 365    12    ]; %1    0.25];  % step sizes in seconds
-nsteps =              [ 800 ];   %   24     24    ]; %50   25]; % number of steps for each size
+nsteps =              [ 500 ];   %   24     24    ]; %50   25]; % number of steps for each size
 
 Nstep_save = 10; % Number of steps between saving output
 
@@ -349,9 +349,14 @@ t0 = 0;
 
     totalDIC = sum(par.DIC.*par.dVt(iwet).*1e-3); % units = mol C
     totalCO2atm = par.pco2atm * par.Natm * 1e-6; % mol C
-    fprintf('...Ocn: avgDIC = %7.4f mmol/m3 \n',sum(par.DIC.*par.dVt(iwet))/sum(par.dVt(iwet)));
-    fprintf('...Ocn: Integrated total DIC = %10.3e Pg C \n',totalDIC*12*1e-15)
-    fprintf('...Atm: Integrated total CO2 = %10.3e Pg C \n',totalCO2atm*12*1e-15);
+    fprintf('...Atm: Integrated total CO2  = %10.3e Pg C \n',totalCO2atm*12*1e-15);
+    %fprintf('...Ocn: avgDIC = %7.4f mmol/m3 \n',sum(par.DIC.*par.dVt(iwet))/sum(par.dVt(iwet)));
+    fprintf('...Ocn: Integrated total DIC  = %10.3e Pg C \n',totalDIC*12*1e-15); 
+    fprintf('...Ocn: Integrated total POC  = %10.3e Pg C \n',sum(par.POC.*par.dVt(iwet).*1e-3)*12*1e-15);    
+    fprintf('...Ocn: Integrated total DOC  = %10.3e Pg C \n',sum(par.DOC.*par.dVt(iwet).*1e-3)*12*1e-15);
+    fprintf('...Ocn: Integrated total DOCl = %10.3e Pg C \n',sum(par.DOCl.*par.dVt(iwet).*1e-3)*12*1e-15);
+    fprintf('...Ocn: Integrated total DOCr = %10.3e Pg C \n',sum(par.DOCr.*par.dVt(iwet).*1e-3)*12*1e-15);
+    fprintf('...Ocn: Integrated total PIC  = %10.3e Pg C \n',sum(par.PIC.*par.dVt(iwet).*1e-3)*12*1e-15);
 
 %% change npp to simulate fertilization.
 % calculate NPP at steady state
@@ -509,9 +514,9 @@ fprintf('Solve eqPcycle...\n')
     try
         % call eqCcycle_v2 (signature used in this repo: [par,C,...] = eqCcycle_v2(x,par))
         fprintf('Solve eqCcycle_v2...\n');
-        if isfile('../output/PNAS2025_transient/transient_test_steadystate_Conly_reoptNature_noAtm_from_reoptNature_with_dop_GM15_npp1_par.mat')
+        if isfile('../output/PNAS2025_transient/transient_test_steadystate_Conly_1h_noAtm_from_reoptNature_noAtm_from_reoptNature_with_dop_GM15_npp1_parXXXXXXX.mat')
             fprintf('Loading presaved par file for eqCcycle_v2...\n');
-            load('../output/PNAS2025_transient/transient_test_steadystate_Conly_reoptNature_noAtm_from_reoptNature_with_dop_GM15_npp1_par.mat','par');
+            load('../output/PNAS2025_transient/transient_test_steadystate_Conly_1h_noAtm_from_reoptNature_noAtm_from_reoptNature_with_dop_GM15_npp1_par.mat','par');
             GC  = [par.DIC; par.POC; par.DOC; par.PIC; ...
                    par.ALK; par.DOCl; par.DOCr];
         else
@@ -555,6 +560,20 @@ fprintf('Solve eqPcycle...\n')
         C_v2 = [];
     end
 
+    fprintf('New eqCcycle Solution \n')
+    fprintf('...Time: %4.2f, AtmCO2: %4.2f uatm,  avgDIC: %7.6g mmol/m3\n', ...
+    t,par.pco2atm,sum(par.DIC.*par.dVt(iwet))/sum(par.dVt(iwet))); % mean(par.DIC)
+    totalDIC = sum(par.DIC.*par.dVt(iwet).*1e-3); % units = mol C
+    totalCO2atm = par.pco2atm * par.Natm * 1e-6; % mol C
+    fprintf('...Atm: Integrated total CO2  = %10.3e Pg C \n',totalCO2atm*12*1e-15);
+    fprintf('...Ocn: Integrated total DIC  = %10.3e Pg C \n',totalDIC*12*1e-15); 
+    fprintf('...Ocn: Integrated total POC  = %10.3e Pg C \n',sum(par.POC.*par.dVt(iwet).*1e-3)*12*1e-15);    
+    fprintf('...Ocn: Integrated total DOC  = %10.3e Pg C \n',sum(par.DOC.*par.dVt(iwet).*1e-3)*12*1e-15);
+    fprintf('...Ocn: Integrated total DOCl = %10.3e Pg C \n',sum(par.DOCl.*par.dVt(iwet).*1e-3)*12*1e-15);
+    fprintf('...Ocn: Integrated total DOCr = %10.3e Pg C \n',sum(par.DOCr.*par.dVt(iwet).*1e-3)*12*1e-15);
+    fprintf('...Ocn: Integrated total PIC  = %10.3e Pg C \n',sum(par.PIC.*par.dVt(iwet).*1e-3)*12*1e-15);
+
+    fprintf('\n');
     %save('temp_par_before_eqCcycleAtm.mat','par');
     fprintf('save temporary par, after eqPcycle and eqCcyle_v2 to file: %s ...\n',par.fxpar);
     save(par.fxpar,'par');
@@ -671,7 +690,7 @@ for dt_idx = 1:length(dt_size)
     % fprintf('...run CeqnAtm \n')
     % [F_C,J_C,par] = CeqnAtm(Xin.C, par);
     fprintf('...run Ceqn_v2 \n')
-    [F_C,J_C,par] = Ceqn_v2(Xin.C, par);
+    [f_C,J_C,par] = Ceqn_v2(Xin.C, par);
     % Evaluate RHS and Jacobian at current state (X, t)
     % Build trapezoidal matrices
     I_C  = speye(numel(Xin.C(:)));
@@ -710,9 +729,10 @@ for dt_idx = 1:length(dt_size)
 
         % % run CeqnAtm
         % % [F_C,J_C,par] = CeqnAtm(Xin.C, par);
-        [F_C,J_C,par] = Ceqn_v2(Xin.C, par);
+        [f_C,J_C,par] = Ceqn_v2(Xin.C, par);
         % Right-hand side
-        rhs_C = B_C*Xin.C - dt*F_C;
+        %C=mfactor(FAC,BC*C-dt*fC);
+        rhs_C = B_C*Xin.C - dt*f_C;
         Xout.C  = mfactor(A_Cfactored, rhs_C);
         % update par with CeqnAtm solution
         par.DIC    = Xout.C(1:nwet);
