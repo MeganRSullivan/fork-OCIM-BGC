@@ -23,7 +23,7 @@ addpath('../src/')
 
 % test1_eqPcycle_with_DOPl_gamma1pct_from_reoptNature_with_dop_GM15_npp1
 
-VerName = 'transient_test_steadystate_Conly_1h_noAtm_from_reoptNature_with_dop_GM15_npp1_'; 		% optional version name. leave as an empty character array
+VerName = 'transient_test_steadystate_Conly_1h_Atm_from_reoptNature_with_dop_GM15_npp1_'; 		% optional version name. leave as an empty character array
 					% or add a name ending with an underscore
 VerNum = '';		% optional version number for testing
 
@@ -258,7 +258,7 @@ par.DOCr= data.DOCr(iwet);
 par.O2  = data.O2(iwet);
 
 Xin.P = [par.DIP;par.POP;par.DOP;par.DOPl];
-Xin.C = [par.DIC;par.POC;par.DOC;par.PIC;par.ALK;par.DOCl;par.DOCr]; %; par.pco2atm];
+Xin.C = [par.DIC;par.POC;par.DOC;par.PIC;par.ALK;par.DOCl;par.DOCr; par.pco2atm];
 Xin.O2 = [par.O2];
 
 
@@ -294,7 +294,7 @@ nsteps =              [ 4        91        4       364/4     48       45       2
 
 %% test run
 dt_size =       spa./[365*24 ];  % 365    12    ]; %1    0.25];  % step sizes in seconds
-nsteps =              [ 500 ];   %   24     24    ]; %50   25]; % number of steps for each size
+nsteps =              [ 800 ];   %   24     24    ]; %50   25]; % number of steps for each size
 
 Nstep_save = 10; % Number of steps between saving output
 
@@ -514,9 +514,10 @@ fprintf('Solve eqPcycle...\n')
     try
         % call eqCcycle_v2 (signature used in this repo: [par,C,...] = eqCcycle_v2(x,par))
         fprintf('Solve eqCcycle_v2...\n');
-        if isfile('../output/PNAS2025_transient/transient_test_steadystate_Conly_1h_noAtm_from_reoptNature_noAtm_from_reoptNature_with_dop_GM15_npp1_parXXXXXXX.mat')
+        if isfile('../output/PNAS2025_transient/transient_test_steadystate_Conly_1h_noAtm_from_reoptNature_with_dop_GM15_npp1_CTL_He_PC_parXXXXX.mat')
             fprintf('Loading presaved par file for eqCcycle_v2...\n');
-            load('../output/PNAS2025_transient/transient_test_steadystate_Conly_1h_noAtm_from_reoptNature_noAtm_from_reoptNature_with_dop_GM15_npp1_par.mat','par');
+            %Code_withCellModel/output/PNAS2025_transient/transient_test_steadystate_Conly_1h_noAtm_from_reoptNature_with_dop_GM15_npp1_CTL_He_PC_par.mat
+            load('../output/PNAS2025_transient/transient_test_steadystate_Conly_1h_noAtm_from_reoptNature_with_dop_GM15_npp1_CTL_He_PC_par.mat','par');
             GC  = [par.DIC; par.POC; par.DOC; par.PIC; ...
                    par.ALK; par.DOCl; par.DOCr];
         else
@@ -560,7 +561,23 @@ fprintf('Solve eqPcycle...\n')
         C_v2 = [];
     end
 
-    fprintf('New eqCcycle Solution \n')
+
+
+fprintf('Solve eqCcycleAtm...\n');
+GC  = [par.DIC; par.POC; par.DOC; par.PIC; ...
+           par.ALK; par.DOCl; par.DOCr; par.pco2atm];
+%[par, C, Cx, Cxx] = eqCcycle_v2(x, par)
+[par, C] = eqCcycleAtm(x0, par);
+    par.DIC    = C(1:nwet);
+    par.POC    = C(1*nwet+1:2*nwet);
+    par.DOC    = C(2*nwet+1:3*nwet);
+    par.PIC    = C(3*nwet+1:4*nwet);
+    par.ALK    = C(4*nwet+1:5*nwet);
+    par.DOCl   = C(5*nwet+1:6*nwet);
+    par.DOCr   = C(6*nwet+1:7*nwet);
+    par.pco2atm= C(7*nwet+1);
+
+    fprintf('New eqCcycleAtm Solution \n')
     fprintf('...Time: %4.2f, AtmCO2: %4.2f uatm,  avgDIC: %7.6g mmol/m3\n', ...
     t,par.pco2atm,sum(par.DIC.*par.dVt(iwet))/sum(par.dVt(iwet))); % mean(par.DIC)
     totalDIC = sum(par.DIC.*par.dVt(iwet).*1e-3); % units = mol C
@@ -577,21 +594,6 @@ fprintf('Solve eqPcycle...\n')
     %save('temp_par_before_eqCcycleAtm.mat','par');
     fprintf('save temporary par, after eqPcycle and eqCcyle_v2 to file: %s ...\n',par.fxpar);
     save(par.fxpar,'par');
-
-% fprintf('Solve eqCcycleAtm...\n');
-% GC  = [par.DIC; par.POC; par.DOC; par.PIC; ...
-%            par.ALK; par.DOCl; par.DOCr; par.pco2atm];
-% %[par, C, Cx, Cxx] = eqCcycle_v2(x, par)
-% [par, C] = eqCcycleAtm(x0, par);
-%     par.DIC    = C(1:nwet);
-%     par.POC    = C(1*nwet+1:2*nwet);
-%     par.DOC    = C(2*nwet+1:3*nwet);
-%     par.PIC    = C(3*nwet+1:4*nwet);
-%     par.ALK    = C(4*nwet+1:5*nwet);
-%     par.DOCl   = C(5*nwet+1:6*nwet);
-%     par.DOCr   = C(6*nwet+1:7*nwet);
-%     par.pco2atm= C(7*nwet+1);
-
 
 %     if ~isempty(C_v2)
 %         species = {'DIC','POC','DOC','PIC','ALK','DOCl','DOCr'};
@@ -648,8 +650,11 @@ for dt_idx = 1:length(dt_size)
     n_substeps = nsteps(dt_idx);
     % load previous iteration solution
     Xin.P = [par.DIP;par.POP;par.DOP;par.DOPl];
-    %Xin.C = [par.DIC;par.POC;par.DOC;par.PIC;par.ALK;par.DOCl;par.DOCr;par.pco2atm];
-    Xin.C = [par.DIC;par.POC;par.DOC;par.PIC;par.ALK;par.DOCl;par.DOCr];
+    if numel(Xin.C) >= 7*nwet+1
+        Xin.C = [par.DIC;par.POC;par.DOC;par.PIC;par.ALK;par.DOCl;par.DOCr;par.pco2atm];
+    else
+        Xin.C = [par.DIC;par.POC;par.DOC;par.PIC;par.ALK;par.DOCl;par.DOCr];
+    end
     Xin.O2 = [par.O2];
 
     % Reset Lambda to simulate fertilization
@@ -687,10 +692,10 @@ for dt_idx = 1:length(dt_size)
     % toc
 
     % run CeqnAtm
-    % fprintf('...run CeqnAtm \n')
-    % [F_C,J_C,par] = CeqnAtm(Xin.C, par);
-    fprintf('...run Ceqn_v2 \n')
-    [f_C,J_C,par] = Ceqn_v2(Xin.C, par);
+    fprintf('...run CeqnAtm \n')
+    [f_C,J_C,par] = CeqnAtm(Xin.C, par);
+    % fprintf('...run Ceqn_v2 \n')
+    % [f_C,J_C,par] = Ceqn_v2(Xin.C, par);
     % Evaluate RHS and Jacobian at current state (X, t)
     % Build trapezoidal matrices
     I_C  = speye(numel(Xin.C(:)));
@@ -711,14 +716,17 @@ for dt_idx = 1:length(dt_size)
 
         % load previous iteration solution
         Xin.P = [par.DIP;par.POP;par.DOP;par.DOPl];
-        %Xin.C = [par.DIC;par.POC;par.DOC;par.PIC;par.ALK;par.DOCl;par.DOCr; par.pco2atm];
-        Xin.C = [par.DIC;par.POC;par.DOC;par.PIC;par.ALK;par.DOCl;par.DOCr];
+        if numel(Xin.C) >= 7*nwet+1
+            Xin.C = [par.DIC;par.POC;par.DOC;par.PIC;par.ALK;par.DOCl;par.DOCr;par.pco2atm];
+        else
+            Xin.C = [par.DIC;par.POC;par.DOC;par.PIC;par.ALK;par.DOCl;par.DOCr];
+        end
         Xin.O2 = [par.O2];
 
         % % run Peqn
-        % [F_P,J_P,par] = Peqn(Xin.P, par); 
+        % [f_P,J_P,par] = Peqn(Xin.P, par); 
         % % Right-hand side
-        % rhs_P = B_P*Xin.P - dt*F_P;
+        % rhs_P = B_P*Xin.P - dt*f_P;
         % Xout.P  = mfactor(A_Pfactored, rhs_P);        
 
         % % update par with Peqn solution
@@ -728,8 +736,8 @@ for dt_idx = 1:length(dt_size)
         % par.DOPl= Xout.P(3*nwet+1:4*nwet);
 
         % % run CeqnAtm
-        % % [F_C,J_C,par] = CeqnAtm(Xin.C, par);
-        [f_C,J_C,par] = Ceqn_v2(Xin.C, par);
+        [f_C,J_C,par] = CeqnAtm(Xin.C, par);
+        % [f_C,J_C,par] = Ceqn_v2(Xin.C, par);
         % Right-hand side
         %C=mfactor(FAC,BC*C-dt*fC);
         rhs_C = B_C*Xin.C - dt*f_C;

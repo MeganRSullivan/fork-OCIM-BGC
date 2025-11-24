@@ -122,14 +122,18 @@ function [par, C, Cx, Cxx] = eqCcycleAtm(x, par)
         nbx  = par.nbx   ; % number of cell model parameters
         nx   = npx + ncx + nbx;
         C    = GC ;
-        Cx   = sparse(7*par.nwet, nx) ;
-        Cxx  = sparse(7*par.nwet, nchoosek(nx,2)+nx) ;
+        Cx   = sparse(7*par.nwet+1, nx) ;
+        Cxx  = sparse(7*par.nwet+1, nchoosek(nx,2)+nx) ;
         [par.G,par.Gx,par.Gxx] = uptake_C(par) ;
         [F,FD,par] = C_eqn(C, par);
     else
         fprintf('reset the global variable for the next call eqCycle. \n')
-        GC = real(C) + 1e-8*randn(7*nwet,1) ;
+        GC = real(C) + 1e-8*randn(7*nwet+1,1) ;
         [F,FD,par,Cx,Cxx] = C_eqn(C, par);
+        % ignore derivatives (not set up for atm box yet)
+        %[F,FD,par] = C_eqn(C, par);
+        %Cx   = sparse(7*par.nwet+1, nx) ;
+        %Cxx  = sparse(7*par.nwet+1, nchoosek(nx,2)+nx) ;
     end
 end
 
