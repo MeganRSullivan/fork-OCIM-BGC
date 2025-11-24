@@ -23,7 +23,7 @@ addpath('../src/')
 
 % test1_eqPcycle_with_DOPl_gamma1pct_from_reoptNature_with_dop_GM15_npp1
 
-VerName = 'transient_test_PC_Atm_from_reoptNature_with_dop_GM15_npp1_'; 		% optional version name. leave as an empty character array
+VerName = 'transient_test_steadystate_PC_Atm_from_reoptNature_with_dop_GM15_npp1_'; 		% optional version name. leave as an empty character array
 					% or add a name ending with an underscore
 VerNum = '';		% optional version number for testing
 
@@ -680,7 +680,7 @@ for dt_idx = 1:length(dt_size)
     end
 
     %increase lambda by 50% in HNLC regions, for first year (2 )
-    if dt_idx <3                  
+    if dt_idx <0 %3                  
         % if fertilization == on, increase P uptake by enough to draw down surface DIP in S.O.
         par.Lambda(MSKS.HNLC) = 1.5*par.Lambda(MSKS.HNLC);
         fprintf('...Increase Lambda in HNLCs by 50 percent from steady state model\n')
