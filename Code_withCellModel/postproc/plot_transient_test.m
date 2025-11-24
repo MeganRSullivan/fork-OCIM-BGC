@@ -1,6 +1,7 @@
 
 
-load('../output/PNAS2025_transient/transient_from_reoptNature_with_dop_GM15_npp1_CTL_He_PC.mat')
+load('../output/PNAS2025_transient/transient_test_PC_Atm_from_reoptNature_with_dop_GM15_npp1_CTL_He_PC_diagnostics.mat')
+
 
 %% 
 addpath('../../DATA/BGC_24layer/')
@@ -25,6 +26,34 @@ M3dsurf = M3d ;             % make surface mask (ocn grid cells in contact with 
 
 spa = 60*60*24*365;
 spd = 60*60*24;
+
+
+%%
+Times = Diags.Tout/(60*60*24*365);
+indx = find(Times<=79);
+figure; plot(Times(indx),Diags.pco2atm(indx)); ylabel('pCO2atm')
+
+%%
+indx = 1:length(Times);
+figure; plot(Times(indx),Diags.totalDIP(indx)); ylabel('totalDIP'); xlabel('Time (years)')
+
+%%
+indx = 1:length(Times);
+figure; plot(Times(indx),Diags.totalDIPsurf(indx)); ylabel('totalDIP euphotic'); xlabel('Time (years)')
+
+%%
+indx = find(Times<=10);
+figure; plot(Times(indx),Diags.PNPP(indx)); ylabel('PNPP'); xlabel('Time (years)')
+
+%% from Diags, check that total P content of ocean stays the same
+Natm    = 1.773e20  ;
+totalPocn = Diags.totalDIP + Diags.totalPOP + Diags.totalDOP + Diags.totalDOPl; 
+totalCocn = Diags.totalDIC + Diags.totalPOC + Diags.totalDOC + Diags.totalDOCl + Diags.totalDOCr + Diags.totalPIC;
+totalCO2atm = Diags.pco2atm * Natm * 1e-6 * 12 * 1e-15; % Pg C
+totalCsystem = totalCocn + totalCO2atm; 
+
+fprintf('Integrated total C range: %10.3e Pg C  -  %10.3e Pg C \n',min(totalCO2system),max(totalCO2system));
+
 %% check output
 
 tindx = 2;
