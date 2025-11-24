@@ -23,7 +23,7 @@ addpath('../src/')
 
 % test1_eqPcycle_with_DOPl_gamma1pct_from_reoptNature_with_dop_GM15_npp1
 
-VerName = 'transient_test_steadystate_Conly_1h_Atm_from_reoptNature_with_dop_GM15_npp1_'; 		% optional version name. leave as an empty character array
+VerName = 'transient_test_steadystate_PC_1h_Atm_from_reoptNature_with_dop_GM15_npp1_'; 		% optional version name. leave as an empty character array
 					% or add a name ending with an underscore
 VerNum = '';		% optional version number for testing
 
@@ -514,10 +514,11 @@ fprintf('Solve eqPcycle...\n')
     try
         % call eqCcycle_v2 (signature used in this repo: [par,C,...] = eqCcycle_v2(x,par))
         fprintf('Solve eqCcycle_v2...\n');
-        if isfile('../output/PNAS2025_transient/transient_test_steadystate_Conly_1h_noAtm_from_reoptNature_with_dop_GM15_npp1_CTL_He_PC_parXXXXX.mat')
+        if isfile('../output/PNAS2025_transient/transient_test_steadystate_Conly_1h_Atm_from_reoptNature_with_dop_GM15_npp1_CTL_He_PC_par.mat')
             fprintf('Loading presaved par file for eqCcycle_v2...\n');
             %Code_withCellModel/output/PNAS2025_transient/transient_test_steadystate_Conly_1h_noAtm_from_reoptNature_with_dop_GM15_npp1_CTL_He_PC_par.mat
-            load('../output/PNAS2025_transient/transient_test_steadystate_Conly_1h_noAtm_from_reoptNature_with_dop_GM15_npp1_CTL_He_PC_par.mat','par');
+            %../output/PNAS2025_transient/transient_test_steadystate_Conly_1h_Atm_from_reoptNature_with_dop_GM15_npp1_CTL_He_PC_par.mat ...
+            load('../output/PNAS2025_transient/transient_test_steadystate_Conly_1h_Atm_from_reoptNature_with_dop_GM15_npp1_CTL_He_PC_par.mat','par');
             GC  = [par.DIC; par.POC; par.DOC; par.PIC; ...
                    par.ALK; par.DOCl; par.DOCr];
         else
@@ -676,20 +677,20 @@ for dt_idx = 1:length(dt_size)
     %     fprintf('...Same Lambda as steady state model\n')
     % end
 
-    % % set up time stepper for P and C (only need to factor trapezoid matrix once for each step size dt)
-    % % run Peqn
-    % fprintf('\ndt = %.1f \n', dt)
-    % fprintf('...run Peqn \n')
-    % [F_P,J_P,par] = Peqn(Xin.P, par); 
-    % % Evaluate RHS and Jacobian at current state (X, t)
-    % % Build trapezoidal matrices
-    % I_P  = speye(numel(Xin.P(:)));
-    % A_P  = I_P + 0.5*dt*J_P;
-    % B_P  = I_P - 0.5*dt*J_P;
-    % fprintf('...factor the big matrix... \n')
-    % tic
-    % A_Pfactored = mfactor(A_P); 
-    % toc
+    % set up time stepper for P and C (only need to factor trapezoid matrix once for each step size dt)
+    % run Peqn
+    fprintf('\ndt = %.1f \n', dt)
+    fprintf('...run Peqn \n')
+    [f_P,J_P,par] = Peqn(Xin.P, par); 
+    % Evaluate RHS and Jacobian at current state (X, t)
+    % Build trapezoidal matrices
+    I_P  = speye(numel(Xin.P(:)));
+    A_P  = I_P + 0.5*dt*J_P;
+    B_P  = I_P - 0.5*dt*J_P;
+    fprintf('...factor the big matrix... \n')
+    tic
+    A_Pfactored = mfactor(A_P); 
+    toc
 
     % run CeqnAtm
     fprintf('...run CeqnAtm \n')
@@ -723,17 +724,17 @@ for dt_idx = 1:length(dt_size)
         end
         Xin.O2 = [par.O2];
 
-        % % run Peqn
-        % [f_P,J_P,par] = Peqn(Xin.P, par); 
-        % % Right-hand side
-        % rhs_P = B_P*Xin.P - dt*f_P;
-        % Xout.P  = mfactor(A_Pfactored, rhs_P);        
+        % run Peqn
+        [f_P,J_P,par] = Peqn(Xin.P, par); 
+        % Right-hand side
+        rhs_P = B_P*Xin.P - dt*f_P;
+        Xout.P  = mfactor(A_Pfactored, rhs_P);        
 
-        % % update par with Peqn solution
-        % par.DIP = Xout.P(1:nwet);
-        % par.POP = Xout.P(1*nwet+1:2*nwet);
-        % par.DOP = Xout.P(2*nwet+1:3*nwet);
-        % par.DOPl= Xout.P(3*nwet+1:4*nwet);
+        % update par with Peqn solution
+        par.DIP = Xout.P(1:nwet);
+        par.POP = Xout.P(1*nwet+1:2*nwet);
+        par.DOP = Xout.P(2*nwet+1:3*nwet);
+        par.DOPl= Xout.P(3*nwet+1:4*nwet);
 
         % % run CeqnAtm
         [f_C,J_C,par] = CeqnAtm(Xin.C, par);
