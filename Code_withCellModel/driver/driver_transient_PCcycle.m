@@ -23,7 +23,7 @@ addpath('../src/')
 
 % test1_eqPcycle_with_DOPl_gamma1pct_from_reoptNature_with_dop_GM15_npp1
 
-VerName = 'transient_test_steadystate_PC_Atm_from_reoptNature_with_dop_GM15_npp1_'; 		% optional version name. leave as an empty character array
+VerName = 'transient_test_steadystate_PC_noAtm_from_reoptNature_with_dop_GM15_npp1_'; 		% optional version name. leave as an empty character array
 					% or add a name ending with an underscore
 VerNum = '';		% optional version number for testing
 
@@ -258,7 +258,7 @@ par.DOCr= data.DOCr(iwet);
 par.O2  = data.O2(iwet);
 
 Xin.P = [par.DIP;par.POP;par.DOP;par.DOPl];
-Xin.C = [par.DIC;par.POC;par.DOC;par.PIC;par.ALK;par.DOCl;par.DOCr; par.pco2atm];
+Xin.C = [par.DIC;par.POC;par.DOC;par.PIC;par.ALK;par.DOCl;par.DOCr]; %; par.pco2atm];
 Xin.O2 = [par.O2];
 
 
@@ -395,13 +395,13 @@ t0 = 0;
     tmp = sum(Cprod_docl(iwet).*dVt(iwet),'all','omitnan')*mmC*spd*365*1e-18;
     fprintf('Global labile DOC production (satellite CNPP - G*C2P): %3.2f Pg C /yr \n\n',tmp);
 %%
-    % increase L, DIP uptake rate, by 10% everywhere
-    fprintf('10 percent increase L ... \n')
-    G = M3d*0;
-    G(iwet) = 1.1*par.alpha*L*par.DIP;
-    Cprod_pocdoc = G.*C2P3D;
-    globalCprod_pocdoc = sum(Cprod_pocdoc(iwet).*dVt(iwet),'all','omitnan')*mmC*spd*365*1e-18;
-    fprintf('Global POC and DOC production (G*C2P) excluding labile DOC: %3.2f Pg C /yr \n',globalCprod_pocdoc);
+    % % increase L, DIP uptake rate, by 10% everywhere
+    % fprintf('10 percent increase L ... \n')
+    % G = M3d*0;
+    % G(iwet) = 1.1*par.alpha*L*par.DIP;
+    % Cprod_pocdoc = G.*C2P3D;
+    % globalCprod_pocdoc = sum(Cprod_pocdoc(iwet).*dVt(iwet),'all','omitnan')*mmC*spd*365*1e-18;
+    % fprintf('Global POC and DOC production (G*C2P) excluding labile DOC: %3.2f Pg C /yr \n',globalCprod_pocdoc);
 
     % 2.6 Pg C increase. but biggest changes in subtropical gyres where L is
     % high, but this is not where fertilization would happen
@@ -518,7 +518,7 @@ fprintf('Solve eqPcycle...\n')
     try
         % call eqCcycle_v2 (signature used in this repo: [par,C,...] = eqCcycle_v2(x,par))
         fprintf('Solve eqCcycle_v2...\n');
-        if isfile('../output/PNAS2025_transient/transient_test_steadystate_Conly_1h_Atm_from_reoptNature_with_dop_GM15_npp1_CTL_He_PC_par.mat')
+        if isfile('../output/PNAS2025_transient/transient_test_steadystate_Conly_1h_Atm_from_reoptNature_with_dop_GM15_npp1_CTL_He_PC_parXXXX.mat')
             fprintf('Loading presaved par file for eqCcycle_v2...\n');
             %Code_withCellModel/output/PNAS2025_transient/transient_test_steadystate_Conly_1h_noAtm_from_reoptNature_with_dop_GM15_npp1_CTL_He_PC_par.mat
             %../output/PNAS2025_transient/transient_test_steadystate_Conly_1h_Atm_from_reoptNature_with_dop_GM15_npp1_CTL_He_PC_par.mat ...
@@ -575,21 +575,21 @@ fprintf('Solve eqPcycle...\n')
 
 
 
-fprintf('Solve eqCcycleAtm...\n');
-GC  = [par.DIC; par.POC; par.DOC; par.PIC; ...
-           par.ALK; par.DOCl; par.DOCr; par.pco2atm];
-%[par, C, Cx, Cxx] = eqCcycle_v2(x, par)
-[par, C] = eqCcycleAtm(x0, par);
-    par.DIC    = C(1:nwet);
-    par.POC    = C(1*nwet+1:2*nwet);
-    par.DOC    = C(2*nwet+1:3*nwet);
-    par.PIC    = C(3*nwet+1:4*nwet);
-    par.ALK    = C(4*nwet+1:5*nwet);
-    par.DOCl   = C(5*nwet+1:6*nwet);
-    par.DOCr   = C(6*nwet+1:7*nwet);
-    par.pco2atm= C(7*nwet+1);
+% fprintf('Solve eqCcycleAtm...\n');
+% GC  = [par.DIC; par.POC; par.DOC; par.PIC; ...
+%            par.ALK; par.DOCl; par.DOCr; par.pco2atm];
+% %[par, C, Cx, Cxx] = eqCcycle_v2(x, par)
+% [par, C] = eqCcycleAtm(x0, par);
+%     par.DIC    = C(1:nwet);
+%     par.POC    = C(1*nwet+1:2*nwet);
+%     par.DOC    = C(2*nwet+1:3*nwet);
+%     par.PIC    = C(3*nwet+1:4*nwet);
+%     par.ALK    = C(4*nwet+1:5*nwet);
+%     par.DOCl   = C(5*nwet+1:6*nwet);
+%     par.DOCr   = C(6*nwet+1:7*nwet);
+%     par.pco2atm= C(7*nwet+1);
 
-    fprintf('New eqCcycleAtm Solution \n')
+    fprintf('New eqCcycle Solution \n')
     fprintf('...Time: %4.2f, AtmCO2: %4.2f uatm,  avgDIC: %7.6g mmol/m3\n', ...
     t,par.pco2atm,sum(par.DIC.*par.dVt(iwet))/sum(par.dVt(iwet))); % mean(par.DIC)
     totalDIC = sum(par.DIC.*par.dVt(iwet).*1e-3); % units = mol C
@@ -704,10 +704,10 @@ for dt_idx = 1:length(dt_size)
     toc
 
     % run CeqnAtm
-    fprintf('...run CeqnAtm \n')
-    [f_C,J_C,par] = CeqnAtm(Xin.C, par);
-    % fprintf('...run Ceqn_v2 \n')
-    % [f_C,J_C,par] = Ceqn_v2(Xin.C, par);
+    % fprintf('...run CeqnAtm \n')
+    % [f_C,J_C,par] = CeqnAtm(Xin.C, par);
+    fprintf('...run Ceqn_v2 \n')
+    [f_C,J_C,par] = Ceqn_v2(Xin.C, par);
     % Evaluate RHS and Jacobian at current state (X, t)
     % Build trapezoidal matrices
     I_C  = speye(numel(Xin.C(:)));
@@ -748,8 +748,8 @@ for dt_idx = 1:length(dt_size)
         par.DOPl= Xout.P(3*nwet+1:4*nwet);
 
         % % run CeqnAtm
-        [f_C,J_C,par] = CeqnAtm(Xin.C, par);
-        % [f_C,J_C,par] = Ceqn_v2(Xin.C, par);
+        %[f_C,J_C,par] = CeqnAtm(Xin.C, par);
+        [f_C,J_C,par] = Ceqn_v2(Xin.C, par);
         % Right-hand side
         %C=mfactor(FAC,BC*C-dt*fC);
         rhs_C = B_C*Xin.C - dt*f_C;
