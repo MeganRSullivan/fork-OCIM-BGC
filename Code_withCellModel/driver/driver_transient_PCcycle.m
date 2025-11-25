@@ -23,13 +23,13 @@ addpath('../src/')
 
 % test1_eqPcycle_with_DOPl_gamma1pct_from_reoptNature_with_dop_GM15_npp1
 
-VerName = 'transient_test_OIF_equalbkCP_PC_noAtm_from_reoptNature_with_dop_GM15_npp1_'; 		% optional version name. leave as an empty character array
+VerName = 'transient_test_steadystate_PC_noAtm_from_reoptNature_with_dop_GM15_npp1_'; 		% optional version name. leave as an empty character array
 					% or add a name ending with an underscore
 VerNum = '';		% optional version number for testing
 
 par.VerName = VerName;
 
-par.equalbkCP = true ; % reset parameters to make remin rates equal for P and C 
+par.equalbkCP = false ; % reset parameters to make remin rates equal for P and C 
 
 % Choose C2P function
 par.C2Pfunctiontype = 'P';
@@ -712,7 +712,7 @@ for dt_idx = 1:length(dt_size)
     end
 
     %increase lambda by 50% in HNLC regions, for first year (2 )
-    if dt_idx < 3                  
+    if dt_idx < 0 %3                  
         % if fertilization == on, increase P uptake by enough to draw down surface DIP in S.O.
         par.Lambda(MSKS.HNLC) = 1.5*par.Lambda(MSKS.HNLC);
         fprintf('...Increase Lambda in HNLCs by 50 percent from steady state model\n')
@@ -856,6 +856,7 @@ for dt_idx = 1:length(dt_size)
         Diags.totalDOPl(global_step) = sum(par.DOPl.*dVt(iwet))*mmP*1e-3*1e-15; %Pg DOPl
     
         % store 3D fields
+        model = struct();
         model.DIP = M3d+nan ; model.POP = M3d+nan ; model.DOP = M3d+nan ; model.DOPl = M3d+nan ;
         model.DIP(iwet) = par.DIP ;
         model.POP(iwet) = par.POP ;
