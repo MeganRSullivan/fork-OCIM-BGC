@@ -23,7 +23,7 @@ addpath('../src/')
 
 % test1_eqPcycle_with_DOPl_gamma1pct_from_reoptNature_with_dop_GM15_npp1
 
-VerName = 'transient_test_steadystate_PC_noAtm_from_reoptNature_with_dop_GM15_npp1_'; 		% optional version name. leave as an empty character array
+VerName = 'transient_test_OIF_PC_noAtm_from_reoptNature_with_dop_GM15_npp1_'; 		% optional version name. leave as an empty character array
 					% or add a name ending with an underscore
 VerNum = '';		% optional version number for testing
 
@@ -334,6 +334,8 @@ Diags.totalDIPsurf = tmp;
 Diags.totalPOP = tmp; 
 Diags.totalDOP = tmp; 
 Diags.totalDOPl = tmp; 
+Diags.totalPexport_darkremin = tmp;
+Diags.totalCexport_darkremin = tmp;
 
 
 % initialize output structure
@@ -654,6 +656,18 @@ fprintf('Solve eqPcycle...\n')
 
 % change npp to simulate fertilization.
 
+%% set up parameters for diagnostic calculations
+    nl = 2; % number of layers in euphotic zone 
+    tf      = (par.vT - 30)/10 ;
+    kP      =  par.kdP * par.Q10P.^tf ;
+    kP3d    = M3d+nan;
+    kP3d(iwet)      = kP ;
+    kC      = d0(par.kdC * par.Q10C .^ tf) ;
+    kC3d    = M3d+nan;
+    kC3d(iwet)      = par.kdC * par.Q10C .^ tf ;
+    kappa_r = par.kru*par.UM + par.krd*par.DM ;
+    eta     = par.etau*par.WM ;
+
 % set up iteration counter 
 t = t0;
 global_step = 0; % global step counter for saving
@@ -680,7 +694,7 @@ for dt_idx = 1:length(dt_size)
     end
 
     %increase lambda by 50% in HNLC regions, for first year (2 )
-    if dt_idx <0 %3                  
+    if dt_idx < 3                  
         % if fertilization == on, increase P uptake by enough to draw down surface DIP in S.O.
         par.Lambda(MSKS.HNLC) = 1.5*par.Lambda(MSKS.HNLC);
         fprintf('...Increase Lambda in HNLCs by 50 percent from steady state model\n')
@@ -822,10 +836,46 @@ for dt_idx = 1:length(dt_size)
         Diags.totalPOP(global_step) = sum(par.POP.*dVt(iwet))*mmP*1e-3*1e-15; %Pg POP
         Diags.totalDOP(global_step) = sum(par.DOP.*dVt(iwet))*mmP*1e-3*1e-15; %Pg DOP
         Diags.totalDOPl(global_step) = sum(par.DOPl.*dVt(iwet))*mmP*1e-3*1e-15; %Pg DOPl
+    
+        % store 3D fields
+        model.DIP = M3d+nan ; model.POP = M3d+nan ; model.DOP = M3d+nan ; model.DOPl = M3d+nan ;
+        model.DIP(iwet) = par.DIP ;
+        model.POP(iwet) = par.POP ;
+        model.DOP(iwet) = par.DOP ;  
+        model.DOPl(iwet) = par.DOPl ; 
+
+        model.DIC = M3d+nan ; model.POC = M3d+nan ; model.DOC = M3d+nan ; 
+        model.PIC = M3d+nan ; model.ALK = M3d+nan ; model.DOCr = M3d+nan ; model.DOCl = M3d+nan ;
+        model.DIC(iwet) = par.DIC ;
+        model.POC(iwet) = par.POC ;
+        model.DOC(iwet) = par.DOC ;
+        model.PIC(iwet) = par.PIC ;
+        model.ALK(iwet) = par.ALK ;
+        model.DOCr(iwet) = par.DOCr ;
+        model.DOCl(iwet) = par.DOCl ;
+
+        % calculate P export (water-column integrated remineralization)
+        % Total organic P remineralization
+        orgPremin = (kP3d.*model.DOP + par.kappa_p*model.POP + par.kappa_l*model.DOPl);         % [mmol P/m^3/sec]
+        Pexp = orgPremin(:,:,nl+1:end).*dVt(:,:,nl+1:end);                              % [mmol P/s]
+        Pexpint = nansum(Pexp,3);                                                       % vertical sum [mmol P/s]
+        Diags.totalPexport_darkremin(global_step) = nansum(Pexpint(:))*mmP*spa*1e-18;                                  % global sum [Pg P/yr]
+        %fprintf('Model globally-integrated TOP  remineralization below the Euphotic zone is %3.4f Pg P /yr \n\n',Diags.totalPexport_darkremin);
+        %Diags.TOPexp_wcremin{global_step} = sum(orgPremin(:,:,nl+1:end).*grd.DZT3d(:,:,3:end),3,'omitnan')*mmP*spd; %[mg P/m^2/day] vertical sum
+        
+
+        % Total organic C remineralization
+        orgCremin = M3d+nan;
+        orgCremin(iwet) = par.kappa_p*model.POC(iwet) + eta*(kC*model.DOC(iwet)) + par.kappa_l*model.DOCl(iwet) +par.kappa_r*model.DOCr(iwet); % [mmol C/m^3/s]
+        Cexp = orgCremin(:,:,nl+1:end).*dVt(:,:,nl+1:end);                  % [mmol C/sec]
+        Cexpint = sum(Cexp,3,'omitnan');                                    % vertical sum [mmol C/s]
+        Diags.totalCexport_darkremin(global_step) = sum(Cexpint(:),'all','omitnan')*mmC*spa*1e-18;     % global sum [Pg C/yr]
+        %fprintf('Model globally-integrated TOC  remineralization below the Euphotic zone is %3.3f Pg C /yr \n\n',Diags.totalCexport_darkremin);
+
 
         % concise diagnostic printout
-        fprintf('t=%6.1f d | pCO2=%6.2f ppm | totalDIC=%8.3f PgC | PNPP=%6.3f PgP/yr | CNPP_nolab=%6.3f PgC/yr | DIP_surf=%6.3e PgP\n', ...
-            t/spd, par.pco2atm, totalDIC, Diags.PNPP(global_step), Diags.CNPP_nolabile(global_step), Diags.totalDIPsurf(global_step));
+        fprintf('t=%6.1f d | pCO2=%6.2f ppm | totalDIC=%8.3f PgC | DIP_surf=%6.3e PgP | PNPP=%6.3f PgP/yr | CNPP_nolab=%6.3f PgC/yr |  orgCexp=%6.3e Pg C/yr\n', ...
+            t/spd, par.pco2atm, totalDIC, Diags.totalDIPsurf(global_step), Diags.PNPP(global_step), Diags.CNPP_nolabile(global_step),  Diags.totalCexport_darkremin(global_step));
 
         % fprintf('t= %10.2f, Ocn: totalDIC = %11.4e Pg C ; Atm pCO2 = %10.3f ppm \n',t/spd, totalDIC, par.pco2atm)
 
