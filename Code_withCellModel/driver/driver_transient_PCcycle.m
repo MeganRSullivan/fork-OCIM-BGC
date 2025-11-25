@@ -23,11 +23,13 @@ addpath('../src/')
 
 % test1_eqPcycle_with_DOPl_gamma1pct_from_reoptNature_with_dop_GM15_npp1
 
-VerName = 'transient_test_OIF_PC_noAtm_from_reoptNature_with_dop_GM15_npp1_'; 		% optional version name. leave as an empty character array
+VerName = 'transient_test_OIF_equalbkCP_PC_noAtm_from_reoptNature_with_dop_GM15_npp1_'; 		% optional version name. leave as an empty character array
 					% or add a name ending with an underscore
 VerNum = '';		% optional version number for testing
 
 par.VerName = VerName;
+
+par.equalbkCP = true ; % reset parameters to make remin rates equal for P and C 
 
 % Choose C2P function
 par.C2Pfunctiontype = 'P';
@@ -656,6 +658,16 @@ fprintf('Solve eqPcycle...\n')
 
 % change npp to simulate fertilization.
 
+if par.equalbkCP ==true
+    %% reset parameters to make remin rates equal for P and C
+    % par.fxhatload = '../output/test_equalbkCP_reoptNature_with_dop_GM15_npp1_CTL_He_xhat.mat
+    fprintf('Setting P remin parameters (kdP,Q10P,bP,bP_T) equal to C remin parameters \n')
+    par.kdP = par.kdC ; % set P remin rate equal to C remin rate
+    par.Q10P = par.Q10C ; % set P Q10 equal to C Q10
+    par.bP = par.bC ; % set P b equal to C b
+    par.bP_T = par.bC_T ; % set P b_T equal to C b_T
+end
+
 %% set up parameters for diagnostic calculations
     nl = 2; % number of layers in euphotic zone 
     tf      = (par.vT - 30)/10 ;
@@ -667,6 +679,12 @@ fprintf('Solve eqPcycle...\n')
     kC3d(iwet)      = par.kdC * par.Q10C .^ tf ;
     kappa_r = par.kru*par.UM + par.krd*par.DM ;
     eta     = par.etau*par.WM ;
+    par.kappa_r = kappa_r ; 
+    par.eta     = eta ;
+    par.kP = kP; 
+    par.kC = kC; 
+ 
+
 
 % set up iteration counter 
 t = t0;
