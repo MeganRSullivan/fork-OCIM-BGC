@@ -23,13 +23,14 @@ addpath('../src/')
 
 % test1_eqPcycle_with_DOPl_gamma1pct_from_reoptNature_with_dop_GM15_npp1
 
-VerName = 'transient_test_steadystate_PC_noAtm_from_reoptNature_with_dop_GM15_npp1_'; 		% optional version name. leave as an empty character array
+VerName = 'transient_test_OIF_PC_noAtm_from_reoptNature_with_dop_GM15_npp1_'; 		% optional version name. leave as an empty character array
 					% or add a name ending with an underscore
 VerNum = '';		% optional version number for testing
 
 par.VerName = VerName;
 
-par.equalbkCP = false ; % reset parameters to make remin rates equal for P and C 
+par.equalbkCP_flag = false ; % reset parameters to make remin rates equal for P and C 
+par.fertilize_flag = true; % if true, increase surface productivity for 1 year
 
 % Choose C2P function
 par.C2Pfunctiontype = 'P';
@@ -658,7 +659,7 @@ fprintf('Solve eqPcycle...\n')
 
 % change npp to simulate fertilization.
 
-if par.equalbkCP ==true
+if par.equalbkCP_flag ==true
     %% reset parameters to make remin rates equal for P and C
     % par.fxhatload = '../output/test_equalbkCP_reoptNature_with_dop_GM15_npp1_CTL_He_xhat.mat
     fprintf('Setting P remin parameters (kdP,Q10P,bP,bP_T) equal to C remin parameters \n')
@@ -712,7 +713,7 @@ for dt_idx = 1:length(dt_size)
     end
 
     %increase lambda by 50% in HNLC regions, for first year (2 )
-    if dt_idx < 0 %3                  
+    if dt_idx < 3 & par.fertilize_flag == true;                  
         % if fertilization == on, increase P uptake by enough to draw down surface DIP in S.O.
         par.Lambda(MSKS.HNLC) = 1.5*par.Lambda(MSKS.HNLC);
         fprintf('...Increase Lambda in HNLCs by 50 percent from steady state model\n')

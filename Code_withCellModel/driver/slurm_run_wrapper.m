@@ -3,7 +3,7 @@
 % directly should suppress the command line prompts from appearing in the
 % output file
 clear all; close all; clc;
-diary logs/transient_test_steadystate_PC_noAtm.out
+%diary logs/transient_test_OIF_PC_noAtm.out
 %fprintf('----------------------------------- \n\n')
 dbstop if error
 date_start = datetime('now');
@@ -13,4 +13,4 @@ fprintf('OPTIM = OFF. Run the re-optimized the BGC model from the Nature paper (
 run driver_transient_PCcycle.m
 date_end = datetime('now'); fprintf('Complete Date: %s\n',date_end)
 fprintf('Total elapsed time was %s\n',date_end - date_start)
-diary off
+%diary off
