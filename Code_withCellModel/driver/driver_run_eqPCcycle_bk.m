@@ -1,0 +1,418 @@
+% driver_run_eqPCcycle.m
+%   Driver script to run biogeochemical model, without optimizing parameters.
+%   This run only solves the phosphorus and carbon cycles, using 
+%   predetermined parameters
+%
+%   for Sullivan 2025 paper: test the model with constant PFD b-values and 
+%   remineralization rate coefficients; set bC = bP and kC = kP
+% ------------------------------------------------------------------------
+%clc; clear all; close all
+global iter
+iter = 0 ;
+on   = true  ; off  = false ;
+format short
+
+% --- addpath to model code -----
+%addpath('../src/')
+addpath('../src_reoptNature/')
+
+% test1_eqPcycle_with_DOPl_gamma1pct_from_reoptNature_with_dop_GM15_npp1
+
+VerName = 'test_equalbkCP_set2C_from_reoptNature_with_dop_GM15_npp1_'; 		% optional version name. leave as an empty character array
+					% or add a name ending with an underscore
+VerNum = '';		% optional version number for testing
+
+par.equalbkCP_flag =true;
+
+% Choose C2P function
+par.C2Pfunctiontype = 'P';
+% 'P' -> PO4 function ; 'C' -> Cell model; 'T' -> Temperature function; 'R' -> constant value (Redfield)
+% 
+par.nppVer = 1; % 1 = CbPM; 2 = CAFE; (Nowicki)
+%
+GridVer  = 91  ;
+operator = 'A' ;
+% GridVer: choose from 90 and 91; Ver 90 is for a Transport
+% operator without diapycnal mixing but optimized using DIP ;
+% Ver 91 include a bunch of operators that include diapycnal
+% mixing. These operators represent sensiviity tests on He
+% constraint and on mixing parameterizations (DeVries et al, 2018).
+% A -> CTL_He; B -> CTL_noHe; C -> KiHIGH_He; D -> KiHIGH_noHe;
+% E -> KvHIGH_KiLOW_He; F -> KvHIGH_KiLOW_noHe; G -> KiLOW_He;
+% H -> KiLOW_noHe; I -> KvHIGH_He; J -> KvHIGH_noHe; K -> KvHIGH_KiHIGH_noHe
+% L -> CTL_He_48layer
+
+par.nl = 2; % number of layers in the model euphotic zone (doesn't change)
+
+Gtest = off ; 
+Htest = off ;
+par.optim   = off ; 
+par.Cmodel  = on ; 
+par.Omodel  = off ; 
+par.Simodel = off ;
+par.Cisotope  = off  ;
+par.dynamicP = off ; % if on, cell model uses modeled DIP. if off, cell model uses WOA observed DIP field.
+par.LoadOpt = on ; % if load optimial parameters. 
+% to load parameter values from a run with a different name.
+%par.fxhatload = '../../output/optPonly_CTL_He_P_xhat.mat';
+par.fxhatload = '../output/PNAS2025/reoptNature_with_dop_GM15_npp1_CTL_He_PCO_DIP1e+00_DIC1e+00_DOC1e+00_ALK1e+00_O21e+00_xhat.mat'
+
+% to use different model output for initial CO guess. 
+%par.fnameload = '/DFS-L/DATA/primeau/hojons1/Nature2023_BGC_reoptimized/src_Nature_parameter_Megan/MSK91/CTL_He_PCO_Gamma0_kl12h_O5_POC2DIC_GM15_Nowicki_npp1_aveTeu_diffSig_O2C_uniEta_DICrmAnthro_2L_Pnormal_DIP1e+00_DIC1e+00_DOC1e+00_ALK1e+00_O21e+00.mat' ;
+par.fnameload = '../output/PNAS2025/reoptNature_with_dop_GM15_npp1_CTL_He_PCO_DIP1e+00_DIC1e+00_DOC1e+00_ALK1e+00_O21e+00.mat'
+
+par.dopscale = 1.0 ;
+par.dipscale = 1.0 ;
+par.dicscale = 1.0 ;
+par.docscale = 1.0 ; % factor to weigh DOC in the objective function
+par.alkscale = 1.0 ;
+par.o2scale  = 1.0 ;
+% P model parameters
+par.opt_sigP  = on ; 
+par.opt_Q10P  = off ;
+par.opt_kdP   = off ;
+par.opt_bP_T  = off ; 
+par.opt_bP    = off ;
+par.opt_alpha = off ;
+par.opt_beta  = off ;
+% C model parameter
+par.opt_sigC  = on ; 
+par.opt_kru   = off ;
+par.opt_krd   = off ;
+par.opt_etau  = off ;
+par.opt_etad  = off ; %keep off
+par.opt_bC_T  = off ;
+par.opt_bC    = off ; 
+par.opt_d     = off ;
+par.opt_Q10C  = off ;
+par.opt_kdC   = off ; 
+par.opt_R_Si  = off ; 
+par.opt_rR    = off ; 
+% --- C:P function parameters -----
+% phosphate-dependent function parameters
+par.opt_cc    = off ;
+par.opt_dd    = off ; 
+% temperature-dependent function parameters
+par.opt_ccT   = off ; 
+par.opt_ddT   = off ;
+% Trait-based Cellular Growth Model parameters
+par.opt_Q10Photo     = on ; % opt
+par.opt_fStorage     = on ; % opt
+par.opt_fRibE 	     = off ; 
+par.opt_kST0 	     = on ; % opt
+par.opt_PLip_PCutoff = off ;
+par.opt_PLip_scale   = off ;
+par.opt_PStor_rCutoff = on; % opt
+par.opt_PStor_scale  = off ;
+par.opt_alphaS       = on ; % opt
+par.opt_gammaDNA	 = off ;
+% O model parameters
+par.opt_O2C_T = off ;
+par.opt_rO2C  = on ;
+% Si model parameters
+par.opt_dsi   = on  ;
+par.opt_at    = off ;
+par.opt_bt    = on  ;
+par.opt_aa    = on  ;
+par.opt_bb    = on  ;
+%
+%-------------load data and set up parameters---------------------
+SetUp ;                      
+
+% save results 
+% ATTENTION: Change this directory to where you want to
+% save your output files
+output_dir = sprintf('../output/PNAS2025/'); 
+
+if ~isdir(output_dir)
+    command = strcat('mkdir', " ", output_dir) ;
+    system(command) ;
+end
+
+VER = strcat(output_dir,VerName,TRdivVer);
+catDOC = ''; % sprintf('_DOC%0.2g_DOP%0.2g',par.docscale,par.dopscale); % used to add scale factors to file names
+% Create output file names based on which model(s) is(are) optimized
+%if Gtest == on
+%    fname = strcat(VER,'_GHtest');
+%elseif Gtest == off
+    if (par.Cmodel == off & par.Omodel == off & par.Simodel == off & par.Cellmodel == off)
+        fname = strcat(VER,'_P',VerNum);
+    elseif (par.Cmodel == on & par.Omodel == off & par.Simodel == off & par.Cellmodel == off)
+        base_name = strcat(VER,'_PC',VerNum);
+        fname = strcat(base_name,catDOC);
+    elseif (par.Cmodel == on & par.Omodel == on & par.Simodel == off & par.Cellmodel == off)
+        base_name = strcat(VER,'_PCO',VerNum);
+        fname = strcat(base_name,catDOC);
+    elseif (par.Cmodel == on & par.Omodel == off & par.Simodel == on & par.Cellmodel == off)
+        base_name = strcat(VER,'_PCSi',VerNum);
+        fname = strcat(base_name,catDOC);
+    elseif (par.Cmodel == on & par.Omodel == on & par.Simodel == on & par.Cellmodel == off)
+        base_name = strcat(VER,'_PCOSi',VerNum);
+        fname = strcat(base_name,catDOC);
+	elseif (par.Cmodel == off & par.Omodel == off & par.Simodel == off & par.Cellmodel == on) % cell model does nothing if C model is not on, so this case =Ponly
+        base_name = strcat(VER,'_PCell',VerNum);
+        fname = strcat(base_name,catDOC);
+	elseif (par.Cmodel == on & par.Omodel == off & par.Simodel == off & par.Cellmodel == on)
+        base_name = strcat(VER,'_PCCell',VerNum);
+        fname = strcat(base_name,catDOC);
+	elseif (par.Cmodel == on & par.Omodel == on & par.Simodel == off & par.Cellmodel == on)
+		base_name = strcat(VER,'_PCOCell',VerNum);
+		fname = strcat(base_name,catDOC);
+	elseif (par.Cmodel == on & par.Omodel == on & par.Simodel == on & par.Cellmodel == on)
+        base_name = strcat(VER,'_PCOSiCell',VerNum);
+        fname = strcat(base_name,catDOC);
+    end
+%end
+
+% -------------------- Set up output files ---------------
+% -------------------- Set up output files ---------------
+par.fname = strcat(fname,'.mat') ;
+fxhat     = strcat(fname,'_xhat.mat') 
+fxpar     = strcat(fname,'_par.mat');
+par.fxhat = fxhat ;
+if Htest ==on
+	fGHtest = strcat(fname,'_GHtest.mat')  ;
+end
+par.fxhat = fxhat ;
+par.fxpar = fxpar ;
+
+% -------------------update initial guesses --------------
+if isfile(par.fnameload)
+    fprintf('loading initial guess on C and O from file: %s \n',par.fnameload)
+    load(par.fnameload)
+end 
+
+% -------------------update initial guesses --------------
+if isfile(par.fname)
+    fprintf('loading initial guess on C and O from file: %s \n',par.fname)
+    load(par.fname)
+end 
+
+%---------------- inital guesses on C and O ---------------
+if par.Cmodel == on 
+    GC  = [data.DIC(iwet); data.POC(iwet); data.DOC(iwet); data.PIC(iwet); ...
+           data.ALK(iwet); data.DOC(iwet); data.DOC(iwet);];
+    GC  = real(GC) + 1e-6*randn(7*nwet,1) ;
+end 
+if par.Omodel == on 
+    GO  = real(data.O2(iwet)) + 1e-9*randn(par.nwet,1);
+end 
+
+%--------------------- prepare parameters ------------------
+% load optimal parameters from a file or set them to default values 
+par = SetPar(par)  ;
+% pack parameters into an array, assign them corresponding indices.
+par = PackPar(par) ;
+
+% --overwrite remin rate parameters
+if par.equalbkCP_flag ==true
+    %% reset parameters to make remin rates equal for P and C
+    % par.fxhatload = '../output/test_equalbkCP_reoptNature_with_dop_GM15_npp1_CTL_He_xhat.mat
+    fprintf('Setting P remin parameters (kdP,Q10P,bP,bP_T) equal to C remin parameters \n')
+    par.kdP = par.kdC ; % set P remin rate equal to C remin rate
+    par.Q10P = par.Q10C ; % set P Q10 equal to C Q10
+    par.bP = par.bC ; % set P b equal to C b
+    par.bP_T = par.bC_T ; % set P b_T equal to C b_T
+end
+
+%-------------------set up fminunc -------------------------
+x0    = par.p0 ;
+myfun = @(x) neglogpost(x, par);
+objfuntolerance = 5e-11; %5e-12;
+options = optimoptions(@fminunc                  , ...
+                       'Algorithm','trust-region', ...
+                       'GradObj','on'            , ...
+                       'Hessian','on'            , ...
+                       'Display','iter'          , ...
+                       'MaxFunEvals',2000        , ...
+                       'MaxIter',2000            , ...
+                       'TolX', objfuntolerance   , ...     % 기존은 -7. decreasing
+                       'TolFun',objfuntolerance  , ...     % 기존은 -7. decreasing
+                       'DerivativeCheck','off'   , ...
+                       'FinDiffType','central'   , ...
+                       'PrecondBandWidth',Inf)   ;
+%
+nip = length(x0);
+if (par.optim)
+    % save SetUp fields
+    fprintf('saving initial SetUp par structure to file: %s \n',par.fxpar)
+    if exist(par.fxpar, 'file')
+        reply = input(sprintf('WARNING: File ( %s ) already exists. \nDo you want to overwrite this file? Y/N: ', par.fxpar), 's');
+        if strcmpi(reply, 'Y')
+            fprintf('Overwriting File... \n');
+            save(par.fxpar, 'par', '-v7.3');
+        else
+            fprintf('Execution stopped by User.\n');
+            fprintf('--------------------------\n\n');
+            return;
+        end
+    else
+        save(par.fxpar, 'par', '-v7.3');
+    end
+    % optimize parameters
+    [xsol,fval,exitflag] = fminunc(myfun,x0,options);
+    fprintf('objective function tolerance = %5.1e \n',objfuntolerance);
+    fprintf('----fminunc complete----\n')
+    [f,fx,fxx,data,xhat] = neglogpost(xsol,par);
+    fprintf('----neglogpost solved for final parameter values----\n')
+    xhat.pindx = par.pindx;
+    xhat.f   = f   ;
+    xhat.fx  = fx  ;
+    xhat.fxx = fxx ;
+    % save results 
+    fprintf('saving optimized parameters to file: %s \n',fxhat)
+    fprintf('saving model solution to file: %s \n',par.fname)
+    save(fxhat, 'xhat')
+    save(par.fname, 'data')
+else
+    clear data
+    x = x0;
+    iter = 0;
+    %[f,fx,fxx,data] = neglogpost(xsol,par);
+    %fprintf('----neglogpost complete----\n')
+    fprintf('\ncurrent time is:      %s\n',datetime('now')) ;
+    fprintf('current iteration is: %d \n',iter) ;
+
+    % print and save current parameter values to
+    % a file that is used to reset parameters ;
+    PrintPar(x, par) ;    
+    % increment iteration counter
+    iter = iter + 1  ;
+
+    nx   = length(x) ; % number of parameters
+    dVt  = par.dVt   ;
+    M3d  = par.M3d   ;
+    iwet = par.iwet  ;
+    nwet = par.nwet  ;
+    %
+    f    = 0 ;
+    %%%%%%%%%%%%%%%%%%   Solve P    %%%%%%%%%%%%%%%%%%%%%%%%
+    idip = find(par.po4raw(iwet) > 0.05) ;
+    Wp   = d0(dVt(iwet(idip))/sum(dVt(iwet(idip)))) ;
+    mu   = sum(Wp*par.po4raw(iwet(idip)))/sum(diag(Wp)) ;
+    var  = sum(Wp*(par.po4raw(iwet(idip))-mu).^2)/sum(diag(Wp)) ;
+    Wip  = par.dipscale*Wp/var ;
+
+    idop = find(par.dopraw(iwet) > 0.0) ;
+    Wp   = d0(dVt(iwet(idop))/sum(dVt(iwet(idop)))) ;
+    mu   = sum(Wp*par.dopraw(iwet(idop)))/sum(diag(Wp)) ;
+    var  = sum(Wp*(par.dopraw(iwet(idop))-mu).^2)/sum(diag(Wp)) ;
+    Wop  = par.dopscale*Wp/var ;
+    %
+    %tic 
+    [par, P, Px, Pxx] = eqPcycle(x, par) ;
+    DIP  = M3d+nan  ;  DIP(iwet)  = P(1+0*nwet:1*nwet) ;
+    POP  = M3d+nan  ;  POP(iwet)  = P(1+1*nwet:2*nwet) ;
+    DOP  = M3d+nan  ;  DOP(iwet)  = P(1+2*nwet:3*nwet) ;
+    DOPl = M3d+nan  ;  DOPl(iwet) = P(1+3*nwet:4*nwet) ;
+    %toc 
+    par.Px   = Px  ;
+    par.Pxx  = Pxx ;
+    par.DIP  = DIP(iwet) ;
+    data.DIP = DIP ; data.POP  = POP  ;
+    data.DOP = DOP ; data.DOPl = DOPl ;
+    % DIP & DOP error
+    DOP = DOP + DOPl; % sum of semilabile and labile DOP ;
+    eip = DIP(iwet(idip)) - par.po4raw(iwet(idip)) ;
+    eop = DOP(iwet(idop)) - par.dopraw(iwet(idop)) ;
+    f  = f + 0.5*(eip.'*Wip*eip) + 0.5*(eop.'*Wop*eop); 
+    f_components.DIP = 0.5*(eip.'*Wip*eip);
+    f_components.DOP = 0.5*(eop.'*Wop*eop); 
+
+    
+    
+    %%%%%%%%%%%%%%%%%%   End Solve P    %%%%%%%%%%%%%%%%%%%%
+
+    %%%%%%%%%%%%%%%%%%     Solve C   %%%%%%%%%%%%%%%%%%%%%%%%
+    if (par.Cmodel == on)
+        idic = find(par.dicraw(iwet) > 0) ;
+        Wic  = d0(dVt(iwet(idic))/sum(dVt(iwet(idic)))) ;
+        mu   = sum(Wic*par.dicraw(iwet(idic)))/sum(diag(Wic)) ;
+        var  = sum(Wic*(par.dicraw(iwet(idic))-mu).^2)/sum(diag(Wic));
+        Wic  = par.dicscale*Wic/var  ;
+        
+        ialk = find(par.alkraw(iwet) > 0) ;
+        Wlk  = d0(dVt(iwet(ialk))/sum(dVt(iwet(ialk)))) ;
+        mu   = sum(Wlk*par.alkraw(iwet(ialk)))/sum(diag(Wlk)) ;
+        var  = sum(Wlk*(par.alkraw(iwet(ialk))-mu).^2)/sum(diag(Wlk));
+        Wlk  = par.alkscale*Wlk/var  ;
+        
+        idoc = find(par.docraw(iwet) > 0) ;
+        Woc  = d0(dVt(iwet(idoc))/sum(dVt(iwet(idoc)))) ;
+        mu   = sum(Woc*par.docraw(iwet(idoc)))/sum(diag(Woc)) ;
+        var  = sum(Woc*(par.docraw(iwet(idoc))-mu).^2)/sum(diag(Woc));
+        Woc  = par.docscale*Woc/var ;
+        %tic 
+        [par, C, Cx, Cxx] = eqCcycle_v2(x, par) ;
+        DIC  = M3d+nan ;  DIC(iwet)  = C(0*nwet+1:1*nwet) ;
+        POC  = M3d+nan ;  POC(iwet)  = C(1*nwet+1:2*nwet) ;
+        DOC  = M3d+nan ;  DOC(iwet)  = C(2*nwet+1:3*nwet) ;
+        PIC  = M3d+nan ;  PIC(iwet)  = C(3*nwet+1:4*nwet) ;
+        ALK  = M3d+nan ;  ALK(iwet)  = C(4*nwet+1:5*nwet) ;
+        DOCl = M3d+nan ;  DOCl(iwet) = C(5*nwet+1:6*nwet) ;
+        DOCr = M3d+nan ;  DOCr(iwet) = C(6*nwet+1:7*nwet) ;
+       % toc
+
+        par.DIC = DIC(iwet) ;
+        par.POC = POC(iwet) ;
+        par.DOC = DOC(iwet) ;
+        par.DOCl = DOCl(iwet) ;
+        par.DOCr = DOCr(iwet) ;
+        % DIC = DIC + par.dicant  ;
+        par.Cx    = Cx   ;  par.Cxx   = Cxx ;
+        data.DIC  = DIC  ;  data.POC  = POC ;
+        data.DOC  = DOC  ;  data.PIC  = PIC ;
+        data.ALK  = ALK  ;  data.DOCr = DOCr ;
+        data.DOCl = DOCl ;
+        try
+            data.C2P = M3d+nan ; data.C2P(iwet) = par.C2P; 
+        catch ME
+            fprintf('error in %s (line %d): %s \n', ME.stack(1).name,ME.stack(1).line,ME.message);
+            fprintf('Unable to store C2P in data struct. \n');
+        end
+        % DOC error
+        DOC = DOC + DOCr + DOCl; % sum of labile and refractory DOC ;
+        eic = DIC(iwet(idic)) - par.dicraw(iwet(idic)) ;
+        eoc = DOC(iwet(idoc)) - par.docraw(iwet(idoc)) ;
+        elk = ALK(iwet(ialk)) - par.alkraw(iwet(ialk)) ;
+        f   = f + 0.5*(eic.'*Wic*eic) + 0.5*(eoc.'*Woc*eoc) + ...
+              0.5*(elk.'*Wlk*elk);
+
+        f_components.DIC = 0.5*(eic.'*Wic*eic);
+        f_components.DOC = 0.5*(eoc.'*Woc*eoc);
+        f_components.ALK = 0.5*(elk.'*Wlk*elk);
+    end
+    %%%%%%%%%%%%%%%%%%   End Solve C    %%%%%%%%%%%%%%%%%%%
+
+% Print and save objective function subcomponent values
+data.f = f;
+    data.f_components = f_components;
+
+    fprintf('current objective function value is: %3.3e \n\n',f) 
+    fprintf('current objective function value for fit to DIP is %3.3e \n',f_components.DIP) 
+    fprintf('current objective function value for fit to DOP is %3.3e \n',f_components.DOP) 
+    if (par.Cmodel == on)
+        fprintf('current objective function value for fit to DIC is %3.3e \n',f_components.DIC) 
+        fprintf('current objective function value for fit to DOC is %3.3e \n',f_components.DOC) 
+        fprintf('current objective function value for fit to ALK is %3.3e \n',f_components.ALK) 
+    end
+
+
+    %% note: skipping save for testing
+    if exist(par.fname, 'file')
+        reply = input(sprintf('WARNING: File ( %s ) already exists. \nDo you want to overwrite this file? Y/N: ', par.fname), 's');
+        if strcmpi(reply, 'Y')
+            fprintf('Overwriting File... \n');
+            fprintf('saving model solution to file: %s \n',par.fname)
+            save(par.fname, 'data')
+        else
+            fprintf('Execution stopped by User.\n');
+            fprintf('--------------------------\n\n');
+            return;
+        end
+    else
+       fprintf('saving model solution to file: %s \n',par.fname)
+       save(par.fname, 'data')
+    end
+end
+fprintf('-------------- end! ---------------\n');
