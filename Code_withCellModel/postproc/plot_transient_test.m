@@ -4,7 +4,8 @@
 
 Xsteady = load('../output/PNAS2025_transient/transient_test_steadystate_PC_noAtm_from_reoptNature_with_dop_GM15_npp1_CTL_He_PC_diagnostics.mat')
 Xoif = load('../output/PNAS2025_transient/transient_test_OIF_PC_noAtm_from_reoptNature_with_dop_GM15_npp1_CTL_He_PC_diagnostics.mat')
-XequalbkCP = load('../output/PNAS2025_transient/transient_test_OIF_equalbkCP_PC_noAtm_from_reoptNature_with_dop_GM15_npp1_CTL_He_PC_diagnostics.mat')
+XequalbkCP1 = load('../output/PNAS2025_transient/transient_test_OIF_equalbkCP_PC_noAtm_from_reoptNature_with_dop_GM15_npp1_CTL_He_PC_diagnostics.mat')
+XequalbkCP = load('../output/PNAS2025_transient/transient_test_OIF_equalbkCP_newsteadystate_PC_noAtm_from_reoptNature_with_dop_GM15_npp1_CTL_He_PC_diagnostics.mat')
 
 
 %% 
@@ -187,7 +188,7 @@ xlim([0,200])
 
 %% plot total C export
 Times = Xoif.Diags.Tout/spa;
-indx = find(Times<=10);
+indx = find(Times<=200);
 figure;
 
 pltdata = Xoif.Diags.totalCexport_darkremin(indx);
@@ -198,6 +199,10 @@ hold on;
 
 pltdata = XequalbkCP.Diags.totalCexport_darkremin(indx);
 plot(Times(indx),pltdata,'-','Color','m','linewidth',2,'DisplayName','equal P & C remin'); 
+
+pltdata = XequalbkCP1.Diags.totalCexport_darkremin(indx);
+plot(Times(indx),pltdata,'-','Color','r','linewidth',2,'DisplayName','equal P & C remin (steady start)'); 
+
 
 pltdata = Xsteady.Diags.totalCexport_darkremin(indx);
 plot(Times(indx),pltdata,'-','Color','k','linewidth',2,'DisplayName','steady state optimized model'); 
@@ -228,16 +233,29 @@ xlim([0, 200])
 %% plot delta C export from steady state
 
 Times = Xoif.Diags.Tout/spa;
-tmaxyr = 10;
+tmaxyr = 100;
 indx = find(Times<=tmaxyr);
 figure; hold on;
 
-pltdata = Xoif.Diags.totalCexport_darkremin(indx) - Xsteady.Diags.totalCexport_darkremin(indx);
+
+pltdata = (Xoif.Diags.totalCexport_darkremin(indx) - Xsteady.Diags.totalCexport_darkremin(indx))./Xsteady.Diags.totalCexport_darkremin(indx);
+
+%pltdata = (Xoif.Diags.totalCexport_darkremin(indx) - Xoif.Diags.totalCexport_darkremin(1))./Xoif.Diags.totalCexport_darkremin(1);
+
 plot(Times(indx),zeros(size(pltdata)),'k-','LineWidth',2,'DisplayName','Zero')
-plot(Times(indx),pltdata,'-','Color',colors.medblue,'linewidth',2,'DisplayName','fertilized'); 
-ylabel('Change in C export (Pg C/yr)'); xlabel('Time (years)'); 
+
+plot(Times(indx),pltdata,'-','Color',colors.medblue,'linewidth',2,'DisplayName','optimized params'); 
+
+pltdata = (XequalbkCP.Diags.totalCexport_darkremin(indx) - XequalbkCP.Diags.totalCexport_darkremin(1))./XequalbkCP.Diags.totalCexport_darkremin(1);
+
+plot(Times(indx),pltdata,'--','Color','m','linewidth',2,'DisplayName','bC = bP; kC = kP'); 
+
+pltdata = (XequalbkCP1.Diags.totalCexport_darkremin(indx) - XequalbkCP1.Diags.totalCexport_darkremin(1))./XequalbkCP1.Diags.totalCexport_darkremin(1);
+plot(Times(indx),pltdata,'-','Color','r','linewidth',2,'DisplayName','bC = bP; kC = kP; steady start'); 
+
+ylabel('Change in C export (Percent)'); xlabel('Time (years)'); 
 title('Change in organic C export: 1y HNLC fertilized x1.5')
-%legend
+legend
 xlim([0, tmaxyr])
 grid on
 %%
