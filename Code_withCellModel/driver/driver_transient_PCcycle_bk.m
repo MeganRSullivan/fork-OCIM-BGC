@@ -23,14 +23,15 @@ addpath('../src/')
 
 % test1_eqPcycle_with_DOPl_gamma1pct_from_reoptNature_with_dop_GM15_npp1
 
-VerName = 'transient_test_steadystate_equalbkCP_PC_noAtm_from_reoptNature_with_dop_GM15_npp1_'; 		% optional version name. leave as an empty character array
+VerName = 'transient_test_OIF_init_at_equalbkCP_newsteadystate_PC_noAtm_from_reoptNature_with_dop_GM15_npp1_'; 		% optional version name. leave as an empty character array
 					% or add a name ending with an underscore
 VerNum = '';		% optional version number for testing
 
 par.VerName = VerName;
 
 par.equalbkCP_flag = true ; % reset parameters to make remin rates equal for P and C 
-par.fertilize_flag = false; % if true, increase surface productivity for 1 year
+par.fertilize_flag = true; % if true, increase surface productivity for 1 year
+par.resetbkCP_flag = true; % after solve steady state, reset remin parameters to original values before transient run
 
 % Choose C2P function
 par.C2Pfunctiontype = 'P';
@@ -295,9 +296,9 @@ nsteps =              [ 24     364     50       20       30     ]; % number of s
 dt_size =        spa./[365*24/6  365/4   365*24/6  365/4     12       1        0.25   ];  % step sizes in seconds
 nsteps =              [ 4        91        4       364/4     48       45       25     ]; % number of steps for each size
 
-%                      1 hr      1 day   1 hr     1 day.  1 month  1 year   4 years  
-dt_size =        spa./[365*24    365     365*24   365     12        1        0.25   ];  % step sizes in seconds
-nsteps =              [ 240      355     240      355     120       90       25     ]; % number of steps for each size
+%                      1 hr      1 day   1 hr     1 day.  1 month  1 year   2 years  
+dt_size =        spa./[365*24    365     365*24   365     12        1        0.5   ];  % step sizes in seconds
+nsteps =              [ 240      355     240      355     120       90       250     ]; % number of steps for each size
 
 %% test run
 %dt_size =       spa./[365*24    365]; %    12    ]; %1    0.25];  % step sizes in seconds
@@ -494,6 +495,19 @@ t0 = 0;
 if par.equalbkCP_flag ==true
     %% reset parameters to make remin rates equal for P and C
     % par.fxhatload = '../output/test_equalbkCP_reoptNature_with_dop_GM15_npp1_CTL_He_xhat.mat
+
+    if par.resetbkCP_flag == true
+        %tempprary store steady state params to reset later
+        old_paramvals.kdP = par.kdP ;
+        old_paramvals.Q10P = par.Q10P ;
+        old_paramvals.bP = par.bP ;
+        old_paramvals.bP_T = par.bP_T ;
+        old_paramvals.kdC = par.kdC ;
+        old_paramvals.Q10C = par.Q10C ;
+        old_paramvals.bC = par.bC ;
+        old_paramvals.bC_T = par.bC_T ; 
+    end
+
     fprintf('Setting P remin parameters (kdP,Q10P,bP,bP_T) equal to C remin parameters \n')
     par.kdP = par.kdC ; % set P remin rate equal to C remin rate
     par.Q10P = par.Q10C ; % set P Q10 equal to C Q10
@@ -677,6 +691,15 @@ fprintf('Solve eqPcycle...\n')
 %     par.bP = par.bC ; % set P b equal to C b
 %     par.bP_T = par.bC_T ; % set P b_T equal to C b_T
 % end
+
+if par.resetbkCP_flag == true
+    %% reset parameters to original values
+    fprintf('Resetting P remin parameters (kdP,Q10P,bP,bP_T) to original optimized values \n')
+    par.kdP = old_paramvals.kdP ;
+    par.Q10P = old_paramvals.Q10P ;
+    par.bP = old_paramvals.bP ;
+    par.bP_T = old_paramvals.bP_T ; 
+end
 
 %% set up parameters for diagnostic calculations
     nl = 2; % number of layers in euphotic zone 
