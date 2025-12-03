@@ -23,7 +23,7 @@ addpath('../src/')
 
 % test1_eqPcycle_with_DOPl_gamma1pct_from_reoptNature_with_dop_GM15_npp1
 
-VerName = 'transient_test_steadystate_PC_noAtm_from_reoptNature_with_dop_GM15_npp1_'; 		% optional version name. leave as an empty character array
+VerName = 'transient_test_steadystate_opt_PC_noAtm_1000y_from_reoptNature_with_dop_GM15_npp1_'; 		% optional version name. leave as an empty character array
 					% or add a name ending with an underscore
 VerNum = '';		% optional version number for testing
 
@@ -298,6 +298,10 @@ nsteps =              [ 4        91        4       364/4     48       45       2
 %                      1 hr      1 day   1 hr     1 day.  1 month  1 year   4 years  
 dt_size =        spa./[365*24    365     365*24   365     12        1        0.25   ];  % step sizes in seconds
 nsteps =              [ 240      355     240      355     120       90       25     ]; % number of steps for each size
+
+%                      1 hr      1 day   1 hr     1 day.  1 month  1yr   %6 mo     1 years  
+dt_size =        spa./[365*24    365     365*24   365     12       1  ]; % 2       1   ];  % step sizes in seconds
+nsteps =              [ 240      355     240      355     120      990 ]; % 980     500   ]; % number of steps for each size
 
 %% test run
 %dt_size =       spa./[365*24    365]; %    12    ]; %1    0.25];  % step sizes in seconds
